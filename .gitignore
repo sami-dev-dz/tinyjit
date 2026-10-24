@@ -1,0 +1,12 @@
+# Fichiers de compilation
+build/
+bin/
+*.o
+*.out
+*.exe
+
+# Fichiers temporaires des éditeurs
+.vscode/
+.idea/
+*.swp
+*~
