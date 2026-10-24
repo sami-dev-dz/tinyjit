@@ -1,12 +1,11 @@
-# Fichiers de compilation
-build/
-bin/
-*.o
-*.out
-*.exe
-
-# Fichiers temporaires des éditeurs
-.vscode/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
 .idea/
+.vscode/
 *.swp
-*~
+
+
