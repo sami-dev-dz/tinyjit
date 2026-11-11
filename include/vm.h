@@ -26,3 +26,4 @@ void vm_init(VM *vm);
 int64_t vm_run(VM *vm, BytecodeFunction *fn, const int64_t *args, size_t num_args);
 
 #endif
+
