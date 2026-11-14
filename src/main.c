@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "bytecode.h"
 #include "vm.h"
+#include "jit.h"
 
 // Crée une fonction: add(a, b) -> a + b
 static BytecodeFunction *build_add_function(void)
@@ -67,6 +68,7 @@ int main(void)
 {
     VM vm;
     vm_init(&vm);
+    jit_init(); // Initialisation du moteur JIT
 
     printf("=== Test 1 : add(10, 32) ===\n");
     BytecodeFunction *fn_add = build_add_function();
@@ -77,14 +79,22 @@ int main(void)
     printf(">> Resultat VM add(10, 32) = %lld\n\n", (long long)add_res);
     free_function(fn_add);
 
-    printf("=== Test 2 : sum_to(10) ===\n");
+    printf("=== Test 2 : sum_to(10) avec detection de point chaud ===\n");
     BytecodeFunction *fn_sum = build_sum_to_function();
     print_bytecode(fn_sum);
 
     int64_t sum_args[] = {10};
-    int64_t sum_res = vm_run(&vm, fn_sum, sum_args, 1);
-    printf(">> Resultat VM sum_to(10) = %lld (attendu: 55)\n", (long long)sum_res);
+    int64_t sum_res = 0;
+
+    // Exécution répétée pour dépasser HOTSPOT_THRESHOLD (ex: 1000 appels)
+    for (int i = 0; i < 1500; i++) {
+        sum_res = vm_run(&vm, fn_sum, sum_args, 1);
+    }
+
+    printf(">> Resultat VM sum_to(10) apres 1500 appels = %lld (attendu: 55)\n", (long long)sum_res);
+    
     free_function(fn_sum);
+    jit_cleanup(); // Libération des ressources JIT
 
     return 0;
 }
