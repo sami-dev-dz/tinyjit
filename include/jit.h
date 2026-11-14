@@ -9,7 +9,7 @@
 
 // Prototype générique d'une fonction compilée en code machine natif :
 // Prend un tableau d'arguments int64_t et renvoie un résultat int64_t
-typedef int64_t (*JitNativeFn)(int64_t* args);
+typedef int64_t (*JitNativeFn)(const int64_t* args);
 
 // Initialise le moteur JIT (contexte global si nécessaire)
 void jit_init(void);
