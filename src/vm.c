@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "jit.h"
 #include "vm.h"
 
 void vm_init(VM *vm)
@@ -16,43 +16,40 @@ void vm_init(VM *vm)
     memset(vm->locals, 0, sizeof(vm->locals));
 }
 
-int64_t vm_run(
-    VM *vm,
-    BytecodeFunction *fn,
-    const int64_t *args,
-    size_t num_args
-)
-{
-    if (vm == NULL || fn == NULL) {
-        return 0;
+int64_t vm_run(VM *vm, BytecodeFunction *fn, const int64_t *args, size_t num_args) {
+    // 1. Si la fonction a déjà été compilée en natif, exécution directe
+    if (fn->native_fn != NULL) {
+        JitNativeFn native = (JitNativeFn)fn->native_fn;
+        return native(args);
     }
 
-    // Réinitialisation de la pile
+    // 2. Profilage : incrémenter le compteur d'appels
+    fn->call_count++;
+    if (fn->call_count == HOTSPOT_THRESHOLD) {
+        jit_compile(fn);
+        if (fn->native_fn != NULL) {
+            JitNativeFn native = (JitNativeFn)fn->native_fn;
+            return native(args);
+        }
+    }
+
+    // 3. Réinitialiser la pile et configurer les variables locales pour cet appel
     vm->sp = 0;
     vm->num_locals = (size_t)fn->num_locals;
 
-    if (vm->num_locals > VM_LOCALS_CAPACITY) {
-        fprintf(stderr, "Erreur VM: trop de variables locales (%zu > %d)\n",
-                vm->num_locals, VM_LOCALS_CAPACITY);
+    size_t max_locals = sizeof(vm->locals) / sizeof(vm->locals[0]);
+    if (vm->num_locals > max_locals) {
+        fprintf(stderr, "Erreur VM: trop de variables locales (%zu)\n", vm->num_locals);
         return 0;
     }
 
-    // Copie des arguments dans les slots locaux
-    size_t args_to_copy = num_args < vm->num_locals ? num_args : vm->num_locals;
-    if (args != NULL && args_to_copy > 0) {
-        memcpy(vm->locals, args, args_to_copy * sizeof(int64_t));
+    // Remettre à 0 les locales puis copier les arguments passés
+    memset(vm->locals, 0, vm->num_locals * sizeof(int64_t));
+    for (size_t i = 0; i < num_args && i < (size_t)fn->num_args; i++) {
+        vm->locals[i] = args[i];
     }
 
-    // Initialisation des autres variables locales à 0
-    for (size_t i = args_to_copy; i < vm->num_locals; i++) {
-        vm->locals[i] = 0;
-    }
-
-    // Incrément du compteur d'appels (utilisé pour détecter les fonctions chaudes du JIT)
-    fn->call_count++;
-
-    size_t ip = 0; // Instruction Pointer
-
+    size_t ip = 0;
     while (ip < fn->code_count) {
         Instruction inst = fn->code[ip++];
 
