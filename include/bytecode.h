@@ -17,18 +17,20 @@ typedef enum {
     OP_EQ,            // Test d'égalité (a == b)
     OP_JUMP,          // Saut inconditionnel : arg = offset d'instruction cible
     OP_JUMP_IF_FALSE, // Saut si faux (0) : arg = offset d'instruction cible
-    OP_CALL,          // Appel de fonction : arg = nombre d'arguments
+    OP_CALL,          // Appel de fonction : arg = index dans func_table
     OP_RET            // Retourne la valeur au sommet
 } OpCode;
 
-// code opération + argument éventuel
+// Code opération + argument éventuel
 typedef struct {
     OpCode op;
     int32_t arg;
 } Instruction;
 
+typedef struct BytecodeFunction BytecodeFunction;
+
 // Structure représentant une fonction compilée
-typedef struct {
+struct BytecodeFunction {
     char* name;
     int num_args;
     int num_locals;
@@ -43,15 +45,21 @@ typedef struct {
     size_t code_count;
     size_t code_capacity;
 
+    // Table des fonctions accessibles par OP_CALL
+    struct BytecodeFunction **func_table;
+    size_t func_table_count;
+    size_t func_table_capacity;
+
     // Données pour le JIT (détection des points chauds)
     int64_t call_count;
     void* native_fn; // Pointeur vers le code compilé à chaud (NULL par défaut)
-} BytecodeFunction;
+};
 
 // Fonctions de gestion du bytecode
 BytecodeFunction* create_function(const char* name, int num_args, int num_locals);
 size_t add_constant(BytecodeFunction* fn, int64_t val);
 size_t emit_instruction(BytecodeFunction* fn, OpCode op, int32_t arg);
+size_t add_function(BytecodeFunction* fn, BytecodeFunction* callee);
 void print_bytecode(const BytecodeFunction* fn);
 void free_function(BytecodeFunction* fn);
 

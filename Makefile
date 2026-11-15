@@ -1,7 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -Iinclude -g
-# Pour activer libgccjit à l'étape JIT :
-# LDFLAGS = -lgccjit
+LDFLAGS = -lgccjit -Wl,--export-all-symbols,--out-implib,build/libmy_jit_vm.a
 
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:src/%.c=build/%.o)

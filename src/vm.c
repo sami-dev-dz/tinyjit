@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "jit.h"
 #include "vm.h"
 
@@ -16,7 +17,12 @@ void vm_init(VM *vm)
     memset(vm->locals, 0, sizeof(vm->locals));
 }
 
-int64_t vm_run(VM *vm, BytecodeFunction *fn, const int64_t *args, size_t num_args) {
+int64_t vm_run(BytecodeFunction *fn, const int64_t *args)
+{
+    if (fn == NULL) {
+        return 0;
+    }
+
     // 1. Si la fonction a déjà été compilée en natif, exécution directe
     if (fn->native_fn != NULL) {
         JitNativeFn native = (JitNativeFn)fn->native_fn;
@@ -33,133 +39,131 @@ int64_t vm_run(VM *vm, BytecodeFunction *fn, const int64_t *args, size_t num_arg
         }
     }
 
-    // 3. Réinitialiser la pile et configurer les variables locales pour cet appel
-    vm->sp = 0;
-    vm->num_locals = (size_t)fn->num_locals;
+    // 3. Pile virtuelle et variables locales propres au frame d'appel courant
+    int64_t stack[VM_STACK_CAPACITY];
+    size_t sp = 0;
 
-    size_t max_locals = sizeof(vm->locals) / sizeof(vm->locals[0]);
-    if (vm->num_locals > max_locals) {
-        fprintf(stderr, "Erreur VM: trop de variables locales (%zu)\n", vm->num_locals);
-        return 0;
+    int64_t locals[VM_LOCALS_CAPACITY];
+    memset(locals, 0, sizeof(locals));
+
+    if (args != NULL && fn->num_args > 0) {
+        for (int i = 0; i < fn->num_args && i < VM_LOCALS_CAPACITY; i++) {
+            locals[i] = args[i];
+        }
     }
 
-    // Remettre à 0 les locales puis copier les arguments passés
-    memset(vm->locals, 0, vm->num_locals * sizeof(int64_t));
-    for (size_t i = 0; i < num_args && i < (size_t)fn->num_args; i++) {
-        vm->locals[i] = args[i];
-    }
+    size_t ip = 0; // Instruction Pointer
 
-    size_t ip = 0;
     while (ip < fn->code_count) {
         Instruction inst = fn->code[ip++];
 
         switch (inst.op) {
         case OP_CONST: {
-            if (vm->sp >= VM_STACK_CAPACITY) {
-                fprintf(stderr, "Erreur VM: débordement de pile\n");
+            if (sp >= VM_STACK_CAPACITY) {
+                fprintf(stderr, "Erreur VM: debordement de pile\n");
                 return 0;
             }
             if (inst.arg < 0 || (size_t)inst.arg >= fn->const_count) {
                 fprintf(stderr, "Erreur VM: constante hors limites (%d)\n", inst.arg);
                 return 0;
             }
-            vm->stack[vm->sp++] = fn->constants[inst.arg];
+            stack[sp++] = fn->constants[inst.arg];
             break;
         }
 
         case OP_LOAD: {
-            if (vm->sp >= VM_STACK_CAPACITY) {
-                fprintf(stderr, "Erreur VM: débordement de pile\n");
+            if (sp >= VM_STACK_CAPACITY) {
+                fprintf(stderr, "Erreur VM: debordement de pile\n");
                 return 0;
             }
-            if (inst.arg < 0 || (size_t)inst.arg >= vm->num_locals) {
+            if (inst.arg < 0 || inst.arg >= VM_LOCALS_CAPACITY) {
                 fprintf(stderr, "Erreur VM: variable locale hors limites (%d)\n", inst.arg);
                 return 0;
             }
-            vm->stack[vm->sp++] = vm->locals[inst.arg];
+            stack[sp++] = locals[inst.arg];
             break;
         }
 
         case OP_STORE: {
-            if (vm->sp == 0) {
+            if (sp == 0) {
                 fprintf(stderr, "Erreur VM: pile vide lors de OP_STORE\n");
                 return 0;
             }
-            if (inst.arg < 0 || (size_t)inst.arg >= vm->num_locals) {
+            if (inst.arg < 0 || inst.arg >= VM_LOCALS_CAPACITY) {
                 fprintf(stderr, "Erreur VM: variable locale hors limites (%d)\n", inst.arg);
                 return 0;
             }
-            vm->locals[inst.arg] = vm->stack[--vm->sp];
+            locals[inst.arg] = stack[--sp];
             break;
         }
 
         case OP_ADD: {
-            if (vm->sp < 2) {
+            if (sp < 2) {
                 fprintf(stderr, "Erreur VM: pile insuffisante pour OP_ADD\n");
                 return 0;
             }
-            int64_t b = vm->stack[--vm->sp];
-            int64_t a = vm->stack[--vm->sp];
-            vm->stack[vm->sp++] = a + b;
+            int64_t b = stack[--sp];
+            int64_t a = stack[--sp];
+            stack[sp++] = a + b;
             break;
         }
 
         case OP_SUB: {
-            if (vm->sp < 2) {
+            if (sp < 2) {
                 fprintf(stderr, "Erreur VM: pile insuffisante pour OP_SUB\n");
                 return 0;
             }
-            int64_t b = vm->stack[--vm->sp];
-            int64_t a = vm->stack[--vm->sp];
-            vm->stack[vm->sp++] = a - b;
+            int64_t b = stack[--sp];
+            int64_t a = stack[--sp];
+            stack[sp++] = a - b;
             break;
         }
 
         case OP_MUL: {
-            if (vm->sp < 2) {
+            if (sp < 2) {
                 fprintf(stderr, "Erreur VM: pile insuffisante pour OP_MUL\n");
                 return 0;
             }
-            int64_t b = vm->stack[--vm->sp];
-            int64_t a = vm->stack[--vm->sp];
-            vm->stack[vm->sp++] = a * b;
+            int64_t b = stack[--sp];
+            int64_t a = stack[--sp];
+            stack[sp++] = a * b;
             break;
         }
 
         case OP_DIV: {
-            if (vm->sp < 2) {
+            if (sp < 2) {
                 fprintf(stderr, "Erreur VM: pile insuffisante pour OP_DIV\n");
                 return 0;
             }
-            int64_t b = vm->stack[--vm->sp];
-            int64_t a = vm->stack[--vm->sp];
+            int64_t b = stack[--sp];
+            int64_t a = stack[--sp];
             if (b == 0) {
-                fprintf(stderr, "Erreur VM: division par zéro\n");
+                fprintf(stderr, "Erreur VM: division par zero\n");
                 return 0;
             }
-            vm->stack[vm->sp++] = a / b;
+            stack[sp++] = a / b;
             break;
         }
 
         case OP_LT: {
-            if (vm->sp < 2) {
+            if (sp < 2) {
                 fprintf(stderr, "Erreur VM: pile insuffisante pour OP_LT\n");
                 return 0;
             }
-            int64_t b = vm->stack[--vm->sp];
-            int64_t a = vm->stack[--vm->sp];
-            vm->stack[vm->sp++] = (a < b) ? 1 : 0;
+            int64_t b = stack[--sp];
+            int64_t a = stack[--sp];
+            stack[sp++] = (a < b) ? 1 : 0;
             break;
         }
 
         case OP_EQ: {
-            if (vm->sp < 2) {
+            if (sp < 2) {
                 fprintf(stderr, "Erreur VM: pile insuffisante pour OP_EQ\n");
                 return 0;
             }
-            int64_t b = vm->stack[--vm->sp];
-            int64_t a = vm->stack[--vm->sp];
-            vm->stack[vm->sp++] = (a == b) ? 1 : 0;
+            int64_t b = stack[--sp];
+            int64_t a = stack[--sp];
+            stack[sp++] = (a == b) ? 1 : 0;
             break;
         }
 
@@ -173,11 +177,11 @@ int64_t vm_run(VM *vm, BytecodeFunction *fn, const int64_t *args, size_t num_arg
         }
 
         case OP_JUMP_IF_FALSE: {
-            if (vm->sp == 0) {
+            if (sp == 0) {
                 fprintf(stderr, "Erreur VM: pile vide lors de OP_JUMP_IF_FALSE\n");
                 return 0;
             }
-            int64_t cond = vm->stack[--vm->sp];
+            int64_t cond = stack[--sp];
             if (cond == 0) {
                 if (inst.arg < 0 || (size_t)inst.arg > fn->code_count) {
                     fprintf(stderr, "Erreur VM: cible de saut invalide (%d)\n", inst.arg);
@@ -189,14 +193,35 @@ int64_t vm_run(VM *vm, BytecodeFunction *fn, const int64_t *args, size_t num_arg
         }
 
         case OP_CALL: {
-            // Nécessitera la gestion des frames d'appel dans les prochaines étapes
-            fprintf(stderr, "Erreur VM: OP_CALL non implémenté\n");
-            return 0;
+            if (fn->func_table == NULL || (size_t)inst.arg >= fn->func_table_count) {
+                fprintf(stderr, "Erreur VM: index invalide dans func_table (%d)\n", inst.arg);
+                return 0;
+            }
+            BytecodeFunction *callee = fn->func_table[inst.arg];
+            int argc = callee->num_args;
+
+            if (sp < (size_t)argc) {
+                fprintf(stderr, "Erreur VM: pas assez d'arguments sur la pile pour OP_CALL\n");
+                return 0;
+            }
+
+            // Dépiler les arguments dans le bon ordre (du dernier au premier)
+            int64_t call_args[16];
+            for (int i = argc - 1; i >= 0; i--) {
+                call_args[i] = stack[--sp];
+            }
+
+            // Exécuter la fonction cible (interprétée ou JIT selon son compteur)
+            int64_t result = vm_run(callee, call_args);
+
+            // Empiler le résultat sur la pile de la fonction appelante
+            stack[sp++] = result;
+            break;
         }
 
         case OP_RET: {
-            if (vm->sp > 0) {
-                return vm->stack[--vm->sp];
+            if (sp > 0) {
+                return stack[--sp];
             }
             return 0;
         }
@@ -209,4 +234,3 @@ int64_t vm_run(VM *vm, BytecodeFunction *fn, const int64_t *args, size_t num_arg
 
     return 0;
 }
-

@@ -46,6 +46,10 @@ BytecodeFunction *create_function(
     fn->code_count = 0;
     fn->code_capacity = 0;
 
+    fn->func_table = NULL;
+    fn->func_table_count = 0;
+    fn->func_table_capacity = 0;
+
     fn->call_count = 0;
     fn->native_fn = NULL;
 
@@ -114,6 +118,36 @@ size_t emit_instruction(BytecodeFunction *fn, OpCode op, int32_t arg)
     return index;
 }
 
+size_t add_function(BytecodeFunction *fn, BytecodeFunction *callee)
+{
+    if (fn == NULL || callee == NULL) {
+        return (size_t)-1;
+    }
+
+    if (fn->func_table_count >= fn->func_table_capacity) {
+        size_t new_cap =
+            fn->func_table_capacity == 0 ? 4 : fn->func_table_capacity * 2;
+
+        BytecodeFunction **new_table = realloc(
+            fn->func_table,
+            new_cap * sizeof(BytecodeFunction *)
+        );
+
+        if (new_table == NULL) {
+            return (size_t)-1;
+        }
+
+        fn->func_table = new_table;
+        fn->func_table_capacity = new_cap;
+    }
+
+    size_t index = fn->func_table_count;
+    fn->func_table[index] = callee;
+    fn->func_table_count++;
+
+    return index;
+}
+
 static const char *opcode_to_string(OpCode op)
 {
     switch (op) {
@@ -145,6 +179,14 @@ void print_bytecode(const BytecodeFunction *fn)
     printf("Arguments: %d, Locals: %d\n",
            fn->num_args, fn->num_locals);
 
+    if (fn->func_table_count > 0) {
+        printf("\nFunction Table:\n");
+        for (size_t i = 0; i < fn->func_table_count; i++) {
+            printf("  [%zu] = %s (args: %d)\n",
+                   i, fn->func_table[i]->name, fn->func_table[i]->num_args);
+        }
+    }
+
     printf("\nConstants:\n");
 
     for (size_t i = 0; i < fn->const_count; i++) {
@@ -171,5 +213,6 @@ void free_function(BytecodeFunction *fn)
     free(fn->name);
     free(fn->constants);
     free(fn->code);
+    free(fn->func_table);
     free(fn);
 }
