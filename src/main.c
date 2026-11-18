@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
 #include <windows.h>
 
 #include "bytecode.h"
@@ -137,20 +139,31 @@ static double get_time_ms(void)
 
 int main(int argc, char **argv)
 {
-    jit_init();
+    bool dump_asm = false;
+    const char *script_path = NULL;
 
-    if (argc >= 2) {
-        char *src = read_file(argv[1]);
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--dump-asm") == 0) {
+            dump_asm = true;
+        } else {
+            script_path = argv[i];
+        }
+    }
+
+    jit_init(dump_asm);
+
+    if (script_path != NULL) {
+        char *src = read_file(script_path);
         Program *prog = compile_source(src);
         if (!prog || !prog->entry_fn) {
-            fprintf(stderr, "Erreur: aucune fonction 'main()' trouvee dans %s\n", argv[1]);
+            fprintf(stderr, "Erreur: aucune fonction 'main()' trouvee dans %s\n", script_path);
             if (prog) free_program(prog);
             free(src);
             jit_cleanup();
             return 1;
         }
         int64_t res = vm_run(prog->entry_fn, NULL);
-        printf(">> Resultat de %s : %lld\n", argv[1], (long long)res);
+        printf(">> Resultat de %s : %lld\n", script_path, (long long)res);
 
         free_program(prog);
         free(src);

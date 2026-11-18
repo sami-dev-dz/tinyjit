@@ -8,10 +8,12 @@
 // Tableau pour conserver les résultats compilés et pouvoir les libérer à la fin
 static gcc_jit_result **compiled_results = NULL;
 static size_t results_count = 0;
+static bool g_dump_asm = false;
 
-void jit_init(void) {
+void jit_init(bool dump_asm) {
     compiled_results = NULL;
     results_count = 0;
+    g_dump_asm = dump_asm;
 }
 
 void jit_compile(BytecodeFunction *fn) {
@@ -31,6 +33,11 @@ void jit_compile(BytecodeFunction *fn) {
 
     // Niveau d'optimisation (O2 pour du code machine rapide)
     gcc_jit_context_set_int_option(ctxt, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 2);
+
+    if (g_dump_asm) {
+        // Affiche l'assembleur x86-64 généré directement dans le terminal
+        gcc_jit_context_set_bool_option(ctxt, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, 1);
+    }
 
     // 2. Définir les types C équivalents : int64_t, const int64_t*, void*
     gcc_jit_type *t_int64 = gcc_jit_context_get_type(ctxt, GCC_JIT_TYPE_LONG_LONG);
@@ -265,6 +272,14 @@ void jit_compile(BytecodeFunction *fn) {
             fprintf(stderr, "[JIT] Opcode non supporte (%d)\n", inst.op);
             break;
         }
+    }
+
+    if (g_dump_asm) {
+        // Sauvegarde également l'équivalent C pseudo-compilé dans un fichier
+        char dump_filename[128];
+        snprintf(dump_filename, sizeof(dump_filename), "%s_jit_dump.c", fn->name);
+        gcc_jit_context_dump_to_file(ctxt, dump_filename, 0);
+        printf("[JIT] Dump C sauvegarde dans '%s'\n", dump_filename);
     }
 
     // 8. Compiler en mémoire et récupérer le pointeur de fonction natif
