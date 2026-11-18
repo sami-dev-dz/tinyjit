@@ -1,15 +1,16 @@
-# Fichiers de compilation
+# Fichiers de compilation et binaires
 build/
 bin/
 *.o
+*.a
 *.out
 *.exe
+
+# JIT dumps
+*_jit_dump.c
 
 # Fichiers temporaires des éditeurs
 .vscode/
 .idea/
 *.swp
 *~
-
-# JIT dumps
-*_jit_dump.c
