@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -Iinclude -g
-LDFLAGS = -lgccjit -Wl,--export-all-symbols,--out-implib,build/libmy_jit_vm.a
+LDFLAGS = -lgccjit
 
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:src/%.c=build/%.o)

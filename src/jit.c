@@ -32,30 +32,11 @@ void jit_compile(BytecodeFunction *fn) {
     // Niveau d'optimisation (O2 pour du code machine rapide)
     gcc_jit_context_set_int_option(ctxt, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 2);
 
-#ifdef _WIN32
-    // Sur Windows, lier le code compilé à chaud avec la table des symboles exportés de l'exécutable
-    gcc_jit_context_add_driver_option(ctxt, "build/libmy_jit_vm.a");
-#endif
-
     // 2. Définir les types C équivalents : int64_t, const int64_t*, void*
     gcc_jit_type *t_int64 = gcc_jit_context_get_type(ctxt, GCC_JIT_TYPE_LONG_LONG);
     gcc_jit_type *t_const_int64 = gcc_jit_type_get_const(t_int64);
     gcc_jit_type *t_args_ptr = gcc_jit_type_get_pointer(t_const_int64);
     gcc_jit_type *t_void_ptr = gcc_jit_context_get_type(ctxt, GCC_JIT_TYPE_VOID_PTR);
-
-    // Déclaration de la fonction externe C : int64_t vm_run(BytecodeFunction *fn, const int64_t *args)
-    gcc_jit_param *p_fn = gcc_jit_context_new_param(ctxt, NULL, t_void_ptr, "target_fn");
-    gcc_jit_param *p_args = gcc_jit_context_new_param(ctxt, NULL, t_args_ptr, "call_args");
-    gcc_jit_param *vm_run_params[2] = { p_fn, p_args };
-
-    gcc_jit_function *jit_vm_run = gcc_jit_context_new_function(
-        ctxt, NULL,
-        GCC_JIT_FUNCTION_IMPORTED, // Fonction C externe déjà existante dans l'exécutable
-        t_int64,
-        "vm_run",
-        2, vm_run_params,
-        0
-    );
 
     // 3. Créer la signature de la fonction native : int64_t fn_jit(const int64_t *args)
     gcc_jit_param *param_args = gcc_jit_context_new_param(ctxt, NULL, t_args_ptr, "args");
@@ -227,35 +208,45 @@ void jit_compile(BytecodeFunction *fn) {
         }
 
         case OP_CALL: {
-            if (fn->func_table == NULL || (size_t)inst.arg >= fn->func_table_count) {
-                fprintf(stderr, "[JIT] Erreur: func_table invalide pour OP_CALL (%d)\n", inst.arg);
-                break;
-            }
             BytecodeFunction *callee = fn->func_table[inst.arg];
             int argc = callee->num_args;
 
-            // Allouer un petit tableau local sur la stack native pour passer les arguments à vm_run
+            // 1. Allouer un tableau local pour les arguments
             gcc_jit_type *t_arr = gcc_jit_context_new_array_type(ctxt, NULL, t_int64, argc > 0 ? argc : 1);
             char arr_name[32];
             snprintf(arr_name, sizeof(arr_name), "call_args_%zu", i);
             gcc_jit_lvalue *native_args = gcc_jit_function_new_local(jit_fn, NULL, t_arr, arr_name);
 
-            // Dépiler les arguments de la pile virtuelle et les placer dans native_args[0..argc-1]
             for (int a = argc - 1; a >= 0; a--) {
                 gcc_jit_rvalue *val = vstack[--vsp];
                 gcc_jit_rvalue *idx = gcc_jit_context_new_rvalue_from_int(ctxt, t_int64, a);
-                gcc_jit_lvalue *elem = gcc_jit_context_new_array_access(ctxt, NULL, gcc_jit_lvalue_as_rvalue(native_args), idx);
+                gcc_jit_lvalue *elem = gcc_jit_context_new_array_access(
+                    ctxt, NULL, gcc_jit_lvalue_as_rvalue(native_args), idx);
                 gcc_jit_block_add_assignment(curr_block, NULL, elem, val);
             }
 
-            // Construire les 2 arguments pour vm_run(callee, &native_args[0])
+            // 2. Définir le type pointeur de fonction : int64_t (*)(void *, const int64_t *)
+            gcc_jit_type *param_types[2] = { t_void_ptr, t_args_ptr };
+            gcc_jit_type *t_vm_run_ptr = gcc_jit_context_new_function_ptr_type(
+                ctxt, NULL, t_int64, 2, param_types, 0
+            );
+
+            // 3. Injecter directement l'adresse mémoire de vm_run
+            gcc_jit_rvalue *r_vm_run_ptr = gcc_jit_context_new_rvalue_from_ptr(
+                ctxt, t_vm_run_ptr, (void *)vm_run
+            );
+
+            // 4. Préparer (callee, &native_args[0]) et appeler via le pointeur
             gcc_jit_rvalue *r_callee = gcc_jit_context_new_rvalue_from_ptr(ctxt, t_void_ptr, callee);
             gcc_jit_rvalue *zero_idx = gcc_jit_context_new_rvalue_from_int(ctxt, t_int64, 0);
-            gcc_jit_lvalue *first_elem = gcc_jit_context_new_array_access(ctxt, NULL, gcc_jit_lvalue_as_rvalue(native_args), zero_idx);
+            gcc_jit_lvalue *first_elem = gcc_jit_context_new_array_access(
+                ctxt, NULL, gcc_jit_lvalue_as_rvalue(native_args), zero_idx);
             gcc_jit_rvalue *r_args_ptr = gcc_jit_lvalue_get_address(first_elem, NULL);
 
             gcc_jit_rvalue *call_params[2] = { r_callee, r_args_ptr };
-            gcc_jit_rvalue *res = gcc_jit_context_new_call(ctxt, NULL, jit_vm_run, 2, call_params);
+            gcc_jit_rvalue *res = gcc_jit_context_new_call_through_ptr(
+                ctxt, NULL, r_vm_run_ptr, 2, call_params
+            );
 
             vstack[vsp++] = res;
             break;
