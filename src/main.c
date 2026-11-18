@@ -1,10 +1,29 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <windows.h>
 
 #include "bytecode.h"
 #include "vm.h"
 #include "jit.h"
+#include "compiler.h"
+
+static char *read_file(const char *path) {
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        fprintf(stderr, "Impossible d'ouvrir '%s'\n", path);
+        exit(1);
+    }
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    rewind(f);
+
+    char *buf = malloc((size_t)size + 1);
+    fread(buf, 1, (size_t)size, f);
+    buf[size] = '\0';
+    fclose(f);
+    return buf;
+}
 
 // Crée une fonction : add(a, b) -> a + b
 static BytecodeFunction *build_add_function(void)
@@ -116,9 +135,28 @@ static double get_time_ms(void)
            (double)freq.QuadPart;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     jit_init();
+
+    if (argc >= 2) {
+        char *src = read_file(argv[1]);
+        Program *prog = compile_source(src);
+        if (!prog || !prog->entry_fn) {
+            fprintf(stderr, "Erreur: aucune fonction 'main()' trouvee dans %s\n", argv[1]);
+            if (prog) free_program(prog);
+            free(src);
+            jit_cleanup();
+            return 1;
+        }
+        int64_t res = vm_run(prog->entry_fn, NULL);
+        printf(">> Resultat de %s : %lld\n", argv[1], (long long)res);
+
+        free_program(prog);
+        free(src);
+        jit_cleanup();
+        return 0;
+    }
 
     // ==========================================
     // TEST 1 : ADD
