@@ -1,0 +1,12 @@
+fn sum_to(n) {
+    var acc = 0;
+    while (0 < n) {
+        acc = acc + n;
+        n = n - 1;
+    }
+    return acc;
+}
+
+fn main() {
+    return sum_to(1000);
+}
