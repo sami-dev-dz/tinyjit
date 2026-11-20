@@ -239,9 +239,7 @@ tinyjit/
 
 ---
 
-## 👥 Auteur & Licence
+## 📄 Licence & Crédits
 
-Projet développé dans le cadre de l'étude des machines virtuelles et des techniques de compilation Just-In-Time.
-- **Auteur :** Sami Ghoul
-- **Dépôt GitHub :** [sami-dev-dz/tinyjit](https://github.com/sami-dev-dz/tinyjit)
+Projet académique développé dans le cadre de l'étude des machines virtuelles et des techniques de compilation Just-In-Time.
 - **Licence :** MIT

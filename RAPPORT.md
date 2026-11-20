@@ -4,10 +4,9 @@
 
 | Informations | Détails |
 | :--- | :--- |
-| **Auteur** | Sami Ghoul |
+| **Cadre** | Module de Compilation & Systèmes d'Exécution |
 | **Encadrant** | Enseignant du module de Compilation |
 | **Environnement** | C11 / GCC 16.2 / libgccjit (x86-64 Windows MSYS2 UCRT64) |
-| **Dépôt GitHub** | https://github.com/sami-dev-dz/tinyjit |
 | **Date** | Novembre 2026 |
 
 ---

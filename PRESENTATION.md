@@ -3,14 +3,13 @@ marp: true
 theme: default
 paginate: true
 header: "TinyJIT : Compilateur Just-In-Time & Machine Virtuelle à Pile"
-footer: "Sami Ghoul — Département d'Informatique & Systèmes d'Exécution"
+footer: "TinyJIT — Département d'Informatique & Systèmes d'Exécution"
 ---
 
 # TinyJIT
 ## Conception, Implémentation et Évaluation d'une Machine Virtuelle Hybride et d'un Compilateur Just-In-Time fondé sur `libgccjit`
 
-**Auteur :** Sami Ghoul  
-**Domaine :** Théorie des Compilateurs, Systèmes d'Exécution & Machines Virtuelles  
+**Cadre :** Théorie des Compilateurs, Systèmes d'Exécution & Machines Virtuelles  
 **Environnement :** C11 / GCC 16.2 / libgccjit / Architecture x86-64  
 **Date :** Année Académique 2025 – 2026  
 
