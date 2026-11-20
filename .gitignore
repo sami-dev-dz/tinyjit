@@ -8,6 +8,11 @@ bin/
 
 # JIT dumps
 *_jit_dump.c
+_studio_temp.tiny
+
+# Python cache
+__pycache__/
+*.pyc
 
 # Fichiers temporaires des éditeurs
 .vscode/

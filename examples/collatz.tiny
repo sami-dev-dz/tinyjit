@@ -1,0 +1,20 @@
+// Suite de Collatz (conjecture 3n + 1)
+// Calcule le nombre d'étapes pour atteindre 1
+fn collatz_steps(n) {
+    var steps = 0;
+    while (1 < n) {
+        // Si n est pair : n / 2, sinon : 3n + 1
+        var half = n / 2;
+        if (half * 2 == n) {
+            n = half;
+        } else {
+            n = n * 3 + 1;
+        }
+        steps = steps + 1;
+    }
+    return steps;
+}
+
+fn main() {
+    return collatz_steps(27);
+}

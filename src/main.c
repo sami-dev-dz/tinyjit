@@ -140,11 +140,20 @@ static double get_time_ms(void)
 int main(int argc, char **argv)
 {
     bool dump_asm = false;
+    bool dump_bytecode = false;
+    bool no_jit = false;
+    bool run_bench = false;
     const char *script_path = NULL;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--dump-asm") == 0) {
             dump_asm = true;
+        } else if (strcmp(argv[i], "--disasm") == 0 || strcmp(argv[i], "--dump-bytecode") == 0) {
+            dump_bytecode = true;
+        } else if (strcmp(argv[i], "--no-jit") == 0 || strcmp(argv[i], "--interp") == 0) {
+            no_jit = true;
+        } else if (strcmp(argv[i], "--benchmark") == 0 || strcmp(argv[i], "--bench") == 0) {
+            run_bench = true;
         } else {
             script_path = argv[i];
         }
@@ -162,11 +171,71 @@ int main(int argc, char **argv)
             jit_cleanup();
             return 1;
         }
+
+        if (dump_bytecode) {
+            printf("=== Bytecode Disassembly ===\n");
+            for (size_t i = 0; i < prog->count; i++) {
+                print_bytecode(prog->functions[i]);
+                printf("\n");
+            }
+        }
+
+        if (no_jit) {
+            for (size_t i = 0; i < prog->count; i++) {
+                prog->functions[i]->call_count = -1000000000LL;
+            }
+        }
+
+        double t_start = get_time_ms();
         int64_t res = vm_run(prog->entry_fn, NULL);
+        double t_elapsed = get_time_ms() - t_start;
+
         printf(">> Resultat de %s : %lld\n", script_path, (long long)res);
+        printf(">> Temps d'execution : %.3f ms\n", t_elapsed);
 
         free_program(prog);
         free(src);
+        jit_cleanup();
+        return 0;
+    }
+
+    if (run_bench) {
+        printf("=== Benchmark TinyJIT : Interpreteur vs JIT ===\n");
+        printf("sum_to(10000) x 5000 appels (50 000 000 iterations)\n\n");
+
+        int64_t bench_args[] = {10000};
+        int64_t bench_res = 0;
+
+        BytecodeFunction *fn_interp = build_sum_to_function();
+        fn_interp->call_count = -1000000000LL;
+
+        double t0 = get_time_ms();
+        for (int i = 0; i < 5000; i++) {
+            bench_res = vm_run(fn_interp, bench_args);
+        }
+        double t_interp = get_time_ms() - t0;
+
+        BytecodeFunction *fn_jit = build_sum_to_function();
+        double t1 = get_time_ms();
+        for (int i = 0; i < 5000; i++) {
+            bench_res = vm_run(fn_jit, bench_args);
+        }
+        double t_jit = get_time_ms() - t1;
+
+        double t2 = get_time_ms();
+        for (int i = 0; i < 5000; i++) {
+            bench_res = vm_run(fn_jit, bench_args);
+        }
+        double t_pure_native = get_time_ms() - t2;
+
+        printf(">> Resultat final : %lld (attendu : 50005000)\n", (long long)bench_res);
+        printf(">> Temps Interpreteur seul : %.3f ms\n", t_interp);
+        printf(">> Temps Hybride (JIT)     : %.3f ms\n", t_jit);
+        printf(">> Temps Natif pur         : %.3f ms\n", t_pure_native);
+        printf(">> Acceleration            : %.1fx plus rapide !\n\n", t_interp / t_pure_native);
+
+        free_function(fn_interp);
+        free_function(fn_jit);
         jit_cleanup();
         return 0;
     }

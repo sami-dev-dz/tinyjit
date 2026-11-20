@@ -201,7 +201,26 @@ Le banc de test intégré mesure le temps d'exécution de la boucle `sum_to(1000
 
 ---
 
-### 8. Conclusion et Perspectives
+### 8. Environnement d'Analyse et Visualisation : TinyJIT Studio
+
+Afin de faciliter l'exploration pédagogique des différentes étapes de la compilation et d'offrir une démonstration visuelle vivante, le projet intègre **TinyJIT Studio**, un environnement interactif complet articulé autour de deux couches :
+
+1. **Backend FastAPI (`studio/server.py`)** :
+   - Orchestre l'exécution de `my_jit_vm.exe` via sous-processus sécurisés.
+   - Fournit une API REST pour l'analyse lexicale, l'extraction du bytecode (`--disasm`), la capture de l'assembleur x86-64 (`--dump-asm`), le calcul de la topologie des blocs de base (CFG), et l'exécution du banc de benchmark (`--bench`).
+   - Assure la gestion transparente des fichiers temporaires et des scripts d'exemples pré-enregistrés (`examples/`).
+
+2. **Interface Utilisateur Moderne (`studio/static/index.html`)** :
+   - **Éditeur Source réactif** avec numérotation de ligne et raccourcis clavier (`Ctrl+Enter`).
+   - **Tableau d'Inspection du Bytecode** détaillant chaque offset, opcode, argument et effet opérationnel.
+   - **Inspecteur Assembleur x86-64 (style *Godbolt*)** colorisant la syntaxe machine, les registres et les étiquettes de saut.
+   - **Graphe de Flot de Contrôle (CFG)** représentant graphiquement les *Basic Blocks* et leurs transitions (vrai, faux, inconditionnel).
+   - **Tableau de Bord de Benchmark** propulsé par `Chart.js` comparant visuellement l'interpréteur, le mode hybride JIT et le code natif.
+   - **Console de Télémétrie** avec badges dynamiques signalant en temps réel la détection des points chauds et la bascule vers le code machine natif.
+
+---
+
+### 9. Conclusion et Perspectives
 
 Le projet **TinyJIT** démontre concrètement les principes de fonctionnement d'un moteur d'exécution adaptatif moderne. En combinant un front-end compact en C11 et la puissance de génération de code de `libgccjit`, le système parvient à allier la simplicité d'un interpréteur à pile aux performances brutes du langage C compilé.
 

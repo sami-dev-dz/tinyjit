@@ -1,0 +1,14 @@
+// Calcul de la somme des entiers de 1 à n
+// Démontre l'allocation de variable locale (var), la boucle while et l'accumulateur
+fn sum_to(n) {
+    var acc = 0;
+    while (0 < n) {
+        acc = acc + n;
+        n = n - 1;
+    }
+    return acc;
+}
+
+fn main() {
+    return sum_to(10000);
+}

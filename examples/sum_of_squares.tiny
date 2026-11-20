@@ -1,0 +1,13 @@
+// Somme des carrés : square(a) + square(b)
+// Démontre les appels de fonctions imbriqués (OP_CALL)
+fn square(x) {
+    return x * x;
+}
+
+fn sum_of_squares(a, b) {
+    return square(a) + square(b);
+}
+
+fn main() {
+    return sum_of_squares(12, 16);
+}
