@@ -1,4 +1,4 @@
-﻿# TinyJIT Studio - Lanceur PowerShell 1-clic
+# TinyJIT Studio - Lanceur PowerShell 1-clic
 # Verifie les prerequis, compile le moteur C si besoin, et lance l'interface web
 
 param(

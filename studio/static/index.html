@@ -3,36 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TinyJIT Studio — JIT Compiler & VM Visualizer</title>
+  <title>TinyJIT Studio — Systems JIT Compiler & Runtime Explorer</title>
   
-  <!-- Inter & JetBrains Mono Fonts -->
+  <!-- Inter & JetBrains Mono typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   
-  <!-- Chart.js for real-time benchmark visualization -->
+  <!-- Chart.js for benchmark visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
+    /* ==========================================================================
+       DESIGN SYSTEM: Modern Systems Engineering Dark Palette (Linear/Vercel/Godbolt)
+       ========================================================================== */
     :root {
-      --bg-canvas: #07090e;
-      --bg-surface: #0e131f;
-      --bg-surface-elevated: #141c2e;
-      --bg-input: #0a0e17;
-      --border-subtle: #1c2638;
-      --border-strong: #2a3b57;
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --accent-cyan: #06b6d4;
-      --accent-cyan-glow: rgba(6, 182, 212, 0.25);
+      --bg-canvas: #09090b;
+      --bg-panel: #111114;
+      --bg-panel-elevated: #16161a;
+      --bg-subtle: #1c1c22;
+      --bg-hover: #22222a;
+      --border-subtle: #1e1e24;
+      --border-default: #2a2a34;
+      --border-strong: #383846;
+      --border-focus: #3b82f6;
+
+      --text-primary: #f4f4f6;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --text-faint: #52525b;
+
+      /* Engineered accent tokens (no cartoon saturated neons) */
+      --accent-blue: #3b82f6;
+      --accent-blue-subtle: rgba(59, 130, 246, 0.12);
       --accent-emerald: #10b981;
-      --accent-emerald-glow: rgba(16, 185, 129, 0.2);
+      --accent-emerald-subtle: rgba(16, 185, 129, 0.12);
       --accent-amber: #f59e0b;
+      --accent-amber-subtle: rgba(245, 158, 11, 0.12);
+      --accent-purple: #8b5cf6;
+      --accent-purple-subtle: rgba(139, 92, 246, 0.12);
       --accent-rose: #f43f5e;
-      --accent-indigo: #6366f1;
-      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --font-code: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      --accent-rose-subtle: rgba(244, 63, 94, 0.12);
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+      
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
     }
 
     * {
@@ -44,219 +62,270 @@
     body {
       background-color: var(--bg-canvas);
       color: var(--text-primary);
-      font-family: var(--font-ui);
+      font-family: var(--font-sans);
       font-size: 13px;
       line-height: 1.5;
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Top Navigation Bar */
+    /* SVG Icon utility */
+    .icon {
+      width: 14px;
+      height: 14px;
+      stroke-width: 1.75;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .icon-sm { width: 12px; height: 12px; }
+    .icon-lg { width: 16px; height: 16px; }
+
+    /* ==========================================================================
+       HEADER: Engineered Navigation & Controls
+       ========================================================================== */
     header {
-      background: rgba(14, 19, 31, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: var(--bg-panel);
       border-bottom: 1px solid var(--border-subtle);
-      height: 52px;
+      height: 48px;
       padding: 0 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      z-index: 100;
+      z-index: 50;
       flex-shrink: 0;
     }
 
-    .brand {
+    .brand-section {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-weight: 700;
-      font-size: 15px;
-      letter-spacing: -0.02em;
     }
 
-    .brand-icon {
-      width: 28px;
-      height: 28px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
-      border-radius: 8px;
-      display: grid;
-      place-items: center;
-      color: #fff;
-      font-weight: 800;
-      font-size: 14px;
-      box-shadow: 0 0 16px var(--accent-cyan-glow);
+    .brand-logo {
+      width: 26px;
+      height: 26px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-blue);
     }
 
     .brand-title {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 8px;
     }
 
-    .badge-version {
-      background: rgba(6, 182, 212, 0.12);
-      color: var(--accent-cyan);
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 9999px;
-      border: 1px solid rgba(6, 182, 212, 0.25);
-      font-family: var(--font-code);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    .brand-name {
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+      color: #fff;
     }
 
-    .header-center {
+    .brand-tag {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--bg-subtle);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Controls Section */
+    .controls-section {
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .select-wrapper {
+    .select-box {
       position: relative;
+      display: inline-flex;
+      align-items: center;
     }
 
-    select {
-      background: var(--bg-surface-elevated);
+    .select-box select {
+      background: var(--bg-panel-elevated);
       color: var(--text-primary);
-      border: 1px solid var(--border-subtle);
-      padding: 6px 30px 6px 12px;
-      border-radius: 6px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 5px 28px 5px 30px;
       font-size: 12px;
+      font-family: var(--font-sans);
       font-weight: 500;
-      font-family: var(--font-ui);
       outline: none;
       cursor: pointer;
       appearance: none;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
     }
 
-    select:hover {
+    .select-box select:hover {
       border-color: var(--border-strong);
+      background: var(--bg-subtle);
     }
 
-    select:focus {
-      border-color: var(--accent-cyan);
-      box-shadow: 0 0 0 2px var(--accent-cyan-glow);
+    .select-box select:focus {
+      border-color: var(--border-focus);
     }
 
-    .select-chevron {
+    .select-icon-left {
       position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
+      left: 10px;
       pointer-events: none;
       color: var(--text-muted);
-      font-size: 10px;
     }
 
-    .btn-group {
+    .select-icon-right {
+      position: absolute;
+      right: 10px;
+      pointer-events: none;
+      color: var(--text-muted);
+    }
+
+    /* Segmented Mode Control */
+    .segmented-control {
+      background: var(--bg-canvas);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 2px;
       display: flex;
-      align-items: center;
-      gap: 6px;
+      gap: 2px;
     }
 
-    button {
+    .segment-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      font-family: var(--font-mono);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-family: var(--font-ui);
+      transition: all 0.12s ease;
+    }
+
+    .segment-btn:hover {
+      color: var(--text-secondary);
+    }
+
+    .segment-btn.active {
+      background: var(--bg-panel-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    /* Action Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-sans);
       font-size: 12px;
-      font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 6px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
       border: 1px solid transparent;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
       white-space: nowrap;
       user-select: none;
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #06b6d4, #0284c7);
+    .btn-run {
+      background: #2563eb;
       color: #ffffff;
-      box-shadow: 0 1px 8px rgba(6, 182, 212, 0.3);
+      border-color: #3b82f6;
     }
 
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #22d3ee, #0369a1);
-      box-shadow: 0 2px 14px rgba(6, 182, 212, 0.5);
-      transform: translateY(-0.5px);
+    .btn-run:hover {
+      background: #1d4ed8;
+      border-color: #60a5fa;
     }
 
-    .btn-secondary {
-      background: var(--bg-surface-elevated);
-      color: var(--text-primary);
-      border: 1px solid var(--border-subtle);
+    .btn-run:active {
+      transform: translateY(0.5px);
     }
 
-    .btn-secondary:hover {
-      background: #192338;
-      border-color: var(--border-strong);
-      color: #fff;
-    }
-
-    .btn-outline-bench {
-      background: rgba(16, 185, 129, 0.08);
-      color: var(--accent-emerald);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-outline-bench:hover {
-      background: rgba(16, 185, 129, 0.18);
-      border-color: var(--accent-emerald);
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
+    .btn-ghost {
+      background: var(--bg-panel-elevated);
       color: var(--text-secondary);
-      font-family: var(--font-code);
-      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    .kbd-shortcut {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-left: 2px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Target badge */
+    .target-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      background: var(--bg-canvas);
       padding: 4px 10px;
-      border-radius: 9999px;
+      border-radius: var(--radius-md);
       border: 1px solid var(--border-subtle);
     }
 
-    .status-dot {
-      width: 7px;
-      height: 7px;
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--accent-emerald);
-      box-shadow: 0 0 8px var(--accent-emerald);
-      animation: pulse-dot 2s infinite ease-in-out;
+      box-shadow: 0 0 6px var(--accent-emerald);
     }
 
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.85); }
-    }
-
-    /* Main Grid Layout */
-    .app-main {
+    /* ==========================================================================
+       MAIN WORKSPACE: Split Pane Layout
+       ========================================================================== */
+    .workspace-grid {
       flex: 1;
       display: grid;
       grid-template-columns: 46% 54%;
-      grid-template-rows: 1fr 180px;
-      height: calc(100vh - 52px);
+      grid-template-rows: 1fr 170px;
+      height: calc(100vh - 48px);
       overflow: hidden;
     }
 
-    /* Panels */
     .panel {
-      background: var(--bg-surface);
+      background: var(--bg-panel);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -265,9 +334,9 @@
       position: relative;
     }
 
-    .panel-header {
-      height: 38px;
-      background: var(--bg-canvas);
+    .panel-toolbar {
+      height: 36px;
+      background: var(--bg-panel);
       border-bottom: 1px solid var(--border-subtle);
       padding: 0 12px;
       display: flex;
@@ -276,69 +345,73 @@
       flex-shrink: 0;
     }
 
-    .panel-title {
+    .panel-label {
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
       color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.04em;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
     }
 
-    /* Tabs */
-    .tab-list {
+    /* Tabs Styling */
+    .tabs-nav {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 1px;
       height: 100%;
     }
 
-    .tab-item {
+    .tab-btn {
       padding: 0 12px;
-      height: 38px;
+      height: 36px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
+      font-family: var(--font-mono);
       color: var(--text-muted);
       cursor: pointer;
+      border: none;
+      background: transparent;
       border-bottom: 2px solid transparent;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
       user-select: none;
     }
 
-    .tab-item:hover {
-      color: var(--text-primary);
+    .tab-btn:hover {
+      color: var(--text-secondary);
       background: rgba(255, 255, 255, 0.02);
     }
 
-    .tab-item.active {
-      color: var(--accent-cyan);
-      border-bottom-color: var(--accent-cyan);
-      background: rgba(6, 182, 212, 0.04);
+    .tab-btn.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent-blue);
+      background: var(--bg-canvas);
     }
 
-    /* Code Editor Panel */
-    .editor-wrapper {
+    /* Editor Component */
+    .editor-container {
       flex: 1;
       display: flex;
       position: relative;
-      overflow: hidden;
       background: var(--bg-canvas);
+      overflow: hidden;
     }
 
-    .line-numbers {
+    .editor-gutter {
       width: 44px;
       background: var(--bg-canvas);
       border-right: 1px solid var(--border-subtle);
-      color: var(--text-muted);
-      font-family: var(--font-code);
+      color: var(--text-faint);
+      font-family: var(--font-mono);
       font-size: 12px;
       line-height: 22px;
-      padding: 12px 6px 12px 0;
+      padding: 12px 8px 12px 0;
       text-align: right;
       user-select: none;
       overflow: hidden;
@@ -347,11 +420,11 @@
     .editor-textarea {
       flex: 1;
       background: transparent;
-      color: #e2e8f0;
-      font-family: var(--font-code);
-      font-size: 13px;
+      color: #e4e4e7;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
       line-height: 22px;
-      padding: 12px 16px;
+      padding: 12px 14px;
       border: none;
       outline: none;
       resize: none;
@@ -361,9 +434,9 @@
       spellcheck: false;
     }
 
-    .editor-footer {
-      height: 28px;
-      background: var(--bg-canvas);
+    .editor-statusbar {
+      height: 26px;
+      background: var(--bg-panel);
       border-top: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
@@ -371,54 +444,60 @@
       padding: 0 12px;
       font-size: 11px;
       color: var(--text-muted);
-      font-family: var(--font-code);
+      font-family: var(--font-mono);
     }
 
-    /* Right Inspection Views */
-    .tab-content {
+    /* Views inside Tab Panel */
+    .view-pane {
       flex: 1;
       overflow: auto;
       display: none;
       padding: 14px;
       position: relative;
+      background: var(--bg-canvas);
     }
 
-    .tab-content.active {
+    .view-pane.active {
       display: block;
     }
 
-    /* Bytecode Table View */
-    .bytecode-fn-block {
-      background: var(--bg-canvas);
+    /* ==========================================================================
+       TAB 1: Bytecode ISA Table
+       ========================================================================== */
+    .fn-table-card {
+      background: var(--bg-panel);
       border: 1px solid var(--border-subtle);
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       margin-bottom: 16px;
       overflow: hidden;
     }
 
-    .bytecode-fn-header {
-      background: var(--bg-surface-elevated);
-      padding: 8px 14px;
+    .fn-table-header {
+      background: var(--bg-panel-elevated);
+      padding: 8px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--border-subtle);
-      font-weight: 600;
-      font-size: 12px;
-      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 11px;
     }
 
-    .bytecode-table {
+    .fn-table-header strong {
+      color: var(--accent-blue);
+    }
+
+    .table-isa {
       width: 100%;
       border-collapse: collapse;
-      font-family: var(--font-code);
-      font-size: 11.5px;
+      font-family: var(--font-mono);
+      font-size: 11px;
     }
 
-    .bytecode-table th {
-      background: #090e18;
+    .table-isa th {
+      background: var(--bg-panel);
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 500;
       text-align: left;
       padding: 6px 12px;
       border-bottom: 1px solid var(--border-subtle);
@@ -427,174 +506,185 @@
       letter-spacing: 0.05em;
     }
 
-    .bytecode-table td {
+    .table-isa td {
       padding: 5px 12px;
-      border-bottom: 1px solid #141c2d;
-      color: #cbd5e1;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
     }
 
-    .bytecode-table tr:hover td {
-      background: rgba(6, 182, 212, 0.04);
+    .table-isa tr:hover td {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
     }
 
-    .op-badge {
+    .op-tag {
       display: inline-block;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+      letter-spacing: 0.02em;
     }
 
-    .op-branch { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-    .op-call { color: #ec4899; background: rgba(236, 72, 153, 0.1); }
-    .op-stack { color: #06b6d4; background: rgba(6, 182, 212, 0.1); }
-    .op-arith { color: #10b981; background: rgba(16, 185, 129, 0.1); }
-    .op-ret { color: #a855f7; background: rgba(168, 85, 247, 0.1); }
+    .op-tag-stack { background: var(--accent-blue-subtle); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.25); }
+    .op-tag-arith { background: var(--accent-emerald-subtle); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .op-tag-branch { background: var(--accent-amber-subtle); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
+    .op-tag-call { background: var(--accent-purple-subtle); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.25); }
+    .op-tag-ret { background: var(--accent-rose-subtle); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.25); }
 
-    /* Assembly View */
-    .asm-container {
-      background: #080b12;
+    /* ==========================================================================
+       TAB 2: x86-64 Assembly View (Godbolt Grade)
+       ========================================================================== */
+    .asm-code-block {
+      background: var(--bg-panel);
       border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 14px;
-      font-family: var(--font-code);
-      font-size: 12px;
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
       line-height: 20px;
-      color: #e2e8f0;
+      color: #e4e4e7;
       overflow: auto;
-      max-height: 100%;
       white-space: pre;
     }
 
-    .asm-label { color: #f59e0b; font-weight: 700; }
-    .asm-instruction { color: #06b6d4; font-weight: 600; }
-    .asm-register { color: #ec4899; }
-    .asm-immediate { color: #10b981; }
-    .asm-comment { color: #64748b; font-style: italic; }
+    .asm-tok-label { color: #f59e0b; font-weight: 600; }
+    .asm-tok-mnemonic { color: #60a5fa; font-weight: 500; }
+    .asm-tok-reg { color: #f472b6; }
+    .asm-tok-imm { color: #34d399; }
+    .asm-tok-comment { color: var(--text-faint); font-style: italic; }
 
-    /* CFG Flow Graph View */
-    .cfg-container {
+    /* ==========================================================================
+       TAB 3: Control Flow Graph (CFG)
+       ========================================================================== */
+    .cfg-canvas-wrap {
       width: 100%;
-      min-height: 480px;
+      min-height: 420px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
-      padding: 20px 0;
+      gap: 16px;
+      padding: 24px 0;
     }
 
-    .cfg-node {
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-strong);
-      border-radius: 8px;
+    .cfg-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
       width: 320px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
       overflow: hidden;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
     }
 
-    .cfg-node:hover {
-      border-color: var(--accent-cyan);
-      box-shadow: 0 0 16px var(--accent-cyan-glow);
+    .cfg-card:hover {
+      border-color: var(--accent-blue);
     }
 
-    .cfg-node-header {
-      background: #111a2c;
+    .cfg-card-title {
+      background: var(--bg-panel-elevated);
       padding: 6px 12px;
-      font-weight: 700;
+      font-family: var(--font-mono);
       font-size: 11px;
-      font-family: var(--font-code);
-      color: var(--accent-cyan);
+      font-weight: 600;
+      color: var(--accent-blue);
       border-bottom: 1px solid var(--border-subtle);
       display: flex;
       justify-content: space-between;
     }
 
-    .cfg-node-body {
+    .cfg-card-content {
       padding: 8px 12px;
-      font-family: var(--font-code);
+      font-family: var(--font-mono);
       font-size: 11px;
       line-height: 18px;
-      color: #cbd5e1;
+      color: var(--text-secondary);
       white-space: pre;
     }
 
-    .cfg-connector {
-      width: 2px;
-      height: 24px;
+    .cfg-arrow {
+      width: 1px;
+      height: 20px;
       background: var(--border-strong);
       position: relative;
     }
 
-    .cfg-connector::after {
-      content: '▼';
+    .cfg-arrow::after {
+      content: '';
       position: absolute;
-      bottom: -8px;
-      left: -4px;
-      font-size: 9px;
-      color: var(--text-muted);
+      bottom: 0;
+      left: -3px;
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--border-strong);
     }
 
-    /* Benchmark Dashboard View */
-    .bench-grid {
+    /* ==========================================================================
+       TAB 4: Benchmark & Profiling Dashboard
+       ========================================================================== */
+    .metrics-row {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
-    .bench-card {
-      background: var(--bg-canvas);
+    .metric-card {
+      background: var(--bg-panel);
       border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 14px;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
-    .bench-card-label {
-      font-size: 11px;
+    .metric-card-title {
+      font-size: 10px;
       color: var(--text-muted);
       font-weight: 600;
       text-transform: uppercase;
+      font-family: var(--font-mono);
       letter-spacing: 0.05em;
     }
 
-    .bench-card-val {
-      font-size: 24px;
-      font-weight: 800;
-      font-family: var(--font-code);
+    .metric-card-number {
+      font-size: 22px;
+      font-weight: 700;
+      font-family: var(--font-mono);
       color: var(--text-primary);
     }
 
-    .bench-card-sub {
+    .metric-card-sub {
       font-size: 11px;
-      color: var(--accent-emerald);
-      font-weight: 500;
+      color: var(--text-muted);
     }
 
-    .chart-box {
-      background: var(--bg-canvas);
+    .chart-container {
+      background: var(--bg-panel);
       border: 1px solid var(--border-subtle);
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       padding: 16px;
-      height: 280px;
+      height: 260px;
     }
 
-    /* Bottom Console Panel (spans both columns) */
-    .console-panel {
+    /* ==========================================================================
+       BOTTOM CONSOLE & TELEMETRY
+       ========================================================================== */
+    .console-section {
       grid-column: 1 / 3;
-      background: var(--bg-canvas);
+      background: var(--bg-panel);
       display: flex;
       flex-direction: column;
       border-top: 1px solid var(--border-subtle);
       overflow: hidden;
     }
 
-    .console-header {
+    .console-bar {
       height: 32px;
-      background: #090d16;
+      background: var(--bg-panel-elevated);
       border-bottom: 1px solid var(--border-subtle);
       padding: 0 12px;
       display: flex;
@@ -603,306 +693,336 @@
       flex-shrink: 0;
     }
 
-    .telemetry-badges {
+    .chips-group {
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .telemetry-badge {
+    .telemetry-chip {
       font-size: 11px;
-      font-family: var(--font-code);
+      font-family: var(--font-mono);
       padding: 2px 8px;
-      border-radius: 4px;
-      background: var(--bg-surface-elevated);
-      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      background: var(--bg-canvas);
+      color: var(--text-muted);
       border: 1px solid var(--border-subtle);
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
 
-    .telemetry-badge strong {
+    .telemetry-chip strong {
       color: var(--text-primary);
     }
 
-    .badge-jit-active {
-      background: rgba(16, 185, 129, 0.12);
+    .chip-jit-active {
+      background: var(--accent-emerald-subtle);
       border-color: rgba(16, 185, 129, 0.3);
       color: var(--accent-emerald);
       font-weight: 600;
     }
 
-    .console-output {
+    .terminal-body {
       flex: 1;
-      padding: 8px 12px;
-      font-family: var(--font-code);
-      font-size: 12px;
+      padding: 8px 14px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
       line-height: 19px;
-      color: #94a3b8;
+      color: var(--text-secondary);
       overflow: auto;
       white-space: pre-wrap;
       user-select: text;
     }
 
-    .console-output .log-stdout { color: #f1f5f9; }
-    .console-output .log-jit { color: #38bdf8; font-weight: 600; }
-    .console-output .log-success { color: #34d399; font-weight: 700; }
-    .console-output .log-error { color: #fb7185; }
-    .console-output .log-info { color: #fbbf24; }
+    .terminal-line { display: block; }
+    .term-stdout { color: var(--text-primary); }
+    .term-jit { color: #38bdf8; font-weight: 500; }
+    .term-ok { color: var(--accent-emerald); font-weight: 600; }
+    .term-err { color: var(--accent-rose); }
+    .term-info { color: var(--text-muted); }
 
-    /* Scrollbars */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: var(--border-strong);
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
-
-    /* Modal / Overlay */
-    .loading-spinner {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    /* Custom Minimal Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation Header -->
+  <!-- ==========================================================================
+       HEADER
+       ========================================================================== -->
   <header>
-    <div class="brand">
-      <div class="brand-icon">⚡</div>
+    <!-- Brand / System Title -->
+    <div class="brand-section">
+      <div class="brand-logo">
+        <svg class="icon icon-lg" viewBox="0 0 24 24">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+          <path d="M2 17l10 5 10-5"></path>
+          <path d="M2 12l10 5 10-5"></path>
+        </svg>
+      </div>
       <div class="brand-title">
-        <span>TinyJIT</span>
-        <span style="font-weight:400; color:var(--text-muted);">Studio</span>
-        <span class="badge-version">v2.0 Native</span>
+        <span class="brand-name">TinyJIT</span>
+        <span class="brand-tag">Runtime Explorer</span>
       </div>
     </div>
 
-    <div class="header-center">
-      <div class="select-wrapper">
-        <select id="exampleSelector" title="Charger un script d'exemple">
-          <option value="" disabled selected>Chargement des exemples...</option>
+    <!-- Center Controls -->
+    <div class="controls-section">
+      <!-- Example Selector -->
+      <div class="select-box">
+        <svg class="icon icon-sm select-icon-left" viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <select id="exampleSelector" title="Charger un programme d'exemple">
+          <option value="" disabled selected>Chargement...</option>
         </select>
-        <span class="select-chevron">▼</span>
+        <svg class="icon icon-sm select-icon-right" viewBox="0 0 24 24">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </div>
 
-      <div class="btn-group">
-        <button id="btnRunJit" class="btn-primary" title="Compiler et exécuter avec détection de point chaud (Ctrl+Enter)">
-          <span>▶ Exécuter (JIT)</span>
+      <!-- Execution Mode Toggle -->
+      <div class="segmented-control">
+        <button id="modeJitBtn" class="segment-btn active" title="Détection automatique des points chauds au seuil de 1000 appels">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>JIT (Hotspot)</span>
         </button>
-        <button id="btnRunInterp" class="btn-secondary" title="Forcer l'exécution 100% interprétée">
-          <span>🐢 Interpréter</span>
-        </button>
-        <button id="btnBench" class="btn-outline-bench" title="Lancer le benchmark comparatif natif">
-          <span>📊 Benchmark</span>
+        <button id="modeInterpBtn" class="segment-btn" title="Interpréteur de bytecode logiciel pur">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>Interpréteur</span>
         </button>
       </div>
+
+      <!-- Run Action -->
+      <button id="btnRun" class="btn btn-run" title="Exécuter le code (Ctrl + Enter)">
+        <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>Exécuter</span>
+        <span class="kbd-shortcut">Ctrl ↵</span>
+      </button>
+
+      <!-- Benchmark Action -->
+      <button id="btnBench" class="btn btn-ghost" title="Lancer le benchmark officiel de performance">
+        <svg class="icon" viewBox="0 0 24 24">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span>Benchmark</span>
+      </button>
     </div>
 
-    <div class="header-right">
-      <div class="status-pill">
-        <div class="status-dot"></div>
-        <span>libgccjit: x86-64</span>
-      </div>
+    <!-- Right Target Chip -->
+    <div class="target-badge">
+      <div class="pulse-dot"></div>
+      <span>x86-64 / PE-COFF</span>
     </div>
   </header>
 
-  <!-- Main Multi-Pane Workspace -->
-  <main class="app-main">
+  <!-- ==========================================================================
+       MAIN WORKSPACE
+       ========================================================================== -->
+  <main class="workspace-grid">
     
-    <!-- Left Pane: Code Editor -->
+    <!-- LEFT PANE: SOURCE EDITOR -->
     <section class="panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span>Éditeur Source</span>
-          <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-code);">[script.tiny]</span>
+      <div class="panel-toolbar">
+        <div class="panel-label">
+          <svg class="icon icon-sm" viewBox="0 0 24 24">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+          <span>Source</span>
+          <span style="color:var(--text-faint); font-weight:400;">script.tiny</span>
         </div>
-        <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-code);">
-          Hotspot: <strong>1000 appels</strong>
+        <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">
+          Seuil : <strong style="color:var(--text-secondary);">1 000 appels</strong>
         </div>
       </div>
 
-      <div class="editor-wrapper">
-        <div id="lineNumbers" class="line-numbers">1</div>
-        <textarea id="codeEditor" class="editor-textarea" placeholder="// Écrivez votre code .tiny ici..." spellcheck="false"></textarea>
+      <div class="editor-container">
+        <div id="editorGutter" class="editor-gutter">1</div>
+        <textarea id="codeEditor" class="editor-textarea" placeholder="// Saisissez votre code .tiny ici..." spellcheck="false"></textarea>
       </div>
 
-      <div class="editor-footer">
-        <span id="cursorPos">Ligne 1, Colonne 1</span>
-        <span>Jeu d'instructions : 16 Opcodes • Pile 64-bit</span>
+      <div class="editor-statusbar">
+        <span id="cursorCoords">Ln 1, Col 1</span>
+        <span>Jeu d'instructions : 15 Opcodes • Pile 64 bits</span>
       </div>
     </section>
 
-    <!-- Right Pane: Multi-Tab Inspection -->
+    <!-- RIGHT PANE: MULTI-VIEW INSPECTOR -->
     <section class="panel" style="border-right: none;">
-      <div class="panel-header" style="padding:0;">
-        <div class="tab-list">
-          <div class="tab-item active" data-tab="tabBytecode">
-            <span>📜 Bytecode ISA</span>
-          </div>
-          <div class="tab-item" data-tab="tabAssembly">
-            <span>⚙️ x86-64 ASM</span>
-          </div>
-          <div class="tab-item" data-tab="tabCfg">
-            <span>🗺️ Basic Blocks (CFG)</span>
-          </div>
-          <div class="tab-item" data-tab="tabBenchmark">
-            <span>📊 Métriques & Bench</span>
-          </div>
-          <div class="tab-item" data-tab="tabCDump">
-            <span>🔬 C IR Dump</span>
-          </div>
+      <div class="panel-toolbar" style="padding: 0;">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="tabBytecode">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            <span>Bytecode</span>
+          </button>
+          <button class="tab-btn" data-tab="tabAssembly">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+            <span>Assembleur x86-64</span>
+          </button>
+          <button class="tab-btn" data-tab="tabCfg">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><line x1="6" y1="9" x2="6" y2="21"></line></svg>
+            <span>Control Flow Graph</span>
+          </button>
+          <button class="tab-btn" data-tab="tabBench">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Métriques</span>
+          </button>
+          <button class="tab-btn" data-tab="tabCDump">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            <span>libgccjit IR</span>
+          </button>
         </div>
       </div>
 
-      <!-- Tab 1: Bytecode Table -->
-      <div id="tabBytecode" class="tab-content active">
+      <!-- VIEW 1: BYTECODE TABLE -->
+      <div id="tabBytecode" class="view-pane active">
         <div id="bytecodeContainer">
-          <div style="color:var(--text-muted); text-align:center; padding: 40px 0;">
-            Cliquez sur <strong>▶ Exécuter (JIT)</strong> pour générer et inspecter le bytecode compilé.
+          <div style="color:var(--text-muted); text-align:center; padding: 48px 0; font-family:var(--font-mono); font-size:12px;">
+            Cliquez sur <strong>Exécuter</strong> pour compiler et inspecter la table de bytecode.
           </div>
         </div>
       </div>
 
-      <!-- Tab 2: x86-64 Assembly View -->
-      <div id="tabAssembly" class="tab-content">
+      <!-- VIEW 2: ASSEMBLY -->
+      <div id="tabAssembly" class="view-pane">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <span style="font-size:11px; color:var(--text-secondary); font-family:var(--font-code);">
-            Code machine compilé par <strong>libgccjit (-O2)</strong>
+          <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">
+            Sortie native générée par <strong>libgccjit (-O2)</strong>
           </span>
-          <button id="btnCopyAsm" class="btn-secondary" style="padding:3px 10px; font-size:11px;">Copier ASM</button>
+          <button id="btnCopyAsm" class="btn btn-ghost" style="padding:3px 8px; font-size:11px;">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copier</span>
+          </button>
         </div>
-        <pre id="asmViewer" class="asm-container">Le code assembleur s'affichera ici dès qu'un point chaud sera franchi.</pre>
+        <pre id="asmViewer" class="asm-code-block">L'assembleur x86-64 s'affiche ici lors du franchissement du seuil de point chaud.</pre>
       </div>
 
-      <!-- Tab 3: Control Flow Graph (CFG) -->
-      <div id="tabCfg" class="tab-content">
-        <div id="cfgContainer" class="cfg-container">
-          <div style="color:var(--text-muted); text-align:center; padding: 40px 0;">
-            Le graphe de flot de contrôle (Basic Blocks & Sauts) s'affichera ici après compilation.
+      <!-- VIEW 3: CONTROL FLOW GRAPH -->
+      <div id="tabCfg" class="view-pane">
+        <div id="cfgContainer" class="cfg-canvas-wrap">
+          <div style="color:var(--text-muted); text-align:center; padding: 48px 0; font-family:var(--font-mono); font-size:12px;">
+            Graphe des Blocs de Base disponible après exécution.
           </div>
         </div>
       </div>
 
-      <!-- Tab 4: Benchmark & Profiling -->
-      <div id="tabBenchmark" class="tab-content">
-        <div class="bench-grid">
-          <div class="bench-card">
-            <span class="bench-card-label">Interpréteur seul</span>
-            <span id="metricInterp" class="bench-card-val">-- ms</span>
-            <span class="bench-card-sub" style="color:var(--text-muted);">Boucle dispatch switch</span>
+      <!-- VIEW 4: BENCHMARK DASHBOARD -->
+      <div id="tabBench" class="view-pane">
+        <div class="metrics-row">
+          <div class="metric-card">
+            <span class="metric-card-title">Interpréteur pur</span>
+            <span id="metricInterp" class="metric-card-number">-- ms</span>
+            <span class="metric-card-sub">Boucle fetch-decode en C</span>
           </div>
-          <div class="bench-card">
-            <span class="bench-card-label">TinyJIT (Hybride)</span>
-            <span id="metricJit" class="bench-card-val" style="color:var(--accent-cyan);">-- ms</span>
-            <span id="metricSpeedup" class="bench-card-sub">Accélération : --x</span>
+          <div class="metric-card">
+            <span class="metric-card-title">TinyJIT (Hybride)</span>
+            <span id="metricJit" class="metric-card-number" style="color:var(--accent-blue);">-- ms</span>
+            <span id="metricSpeedup" class="metric-card-sub" style="color:var(--accent-emerald);">Accélération : --x</span>
           </div>
-          <div class="bench-card">
-            <span class="bench-card-label">Code C Natif (-O2)</span>
-            <span id="metricNative" class="bench-card-val" style="color:var(--accent-emerald);">-- ms</span>
-            <span class="bench-card-sub">Optimal matériel x86-64</span>
+          <div class="metric-card">
+            <span class="metric-card-title">Code C Natif (-O2)</span>
+            <span id="metricNative" class="metric-card-number" style="color:var(--accent-emerald);">-- ms</span>
+            <span class="metric-card-sub">Optimal matériel CPU</span>
           </div>
         </div>
 
-        <div class="chart-box">
+        <div class="chart-container">
           <canvas id="benchChart"></canvas>
         </div>
       </div>
 
-      <!-- Tab 5: C IR Dump -->
-      <div id="tabCDump" class="tab-content">
-        <pre id="cDumpViewer" class="asm-container">Les fonctions traduites en syntaxe libgccjit s'afficheront ici après compilation.</pre>
+      <!-- VIEW 5: C IR DUMP -->
+      <div id="tabCDump" class="view-pane">
+        <pre id="cDumpViewer" class="asm-code-block">Représentation intermédiaire libgccjit.</pre>
       </div>
     </section>
 
-    <!-- Bottom Pane: Execution Console & Telemetry -->
-    <section class="console-panel">
-      <div class="console-header">
-        <div class="panel-title" style="margin:0;">
+    <!-- BOTTOM PANE: CONSOLE & TELEMETRY -->
+    <section class="console-section">
+      <div class="console-bar">
+        <div class="panel-label" style="text-transform:none;">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
           <span>Terminal d'Exécution</span>
         </div>
-        
-        <div class="telemetry-badges">
-          <div class="telemetry-badge">
-            Résultat : <strong id="telemetryResult">--</strong>
+
+        <div class="chips-group">
+          <div class="telemetry-chip">
+            Résultat : <strong id="chipResult">--</strong>
           </div>
-          <div class="telemetry-badge">
-            Temps VM : <strong id="telemetryTime">-- ms</strong>
+          <div class="telemetry-chip">
+            Temps : <strong id="chipTime">-- ms</strong>
           </div>
-          <div id="telemetryJitBadge" class="telemetry-badge">
+          <div id="chipJit" class="telemetry-chip">
             JIT : <strong>En attente</strong>
           </div>
-          <button id="btnClearConsole" class="btn-secondary" style="padding:2px 8px; font-size:10px;">Effacer</button>
+          <button id="btnClearTerm" class="btn btn-ghost" style="padding:2px 6px; font-size:10px;">
+            <span>Effacer</span>
+          </button>
         </div>
       </div>
 
-      <div id="consoleOutput" class="console-output">TinyJIT Studio v2.0 prêt. Choisissez un exemple ou lancez l'exécution avec Ctrl+Enter.</div>
+      <div id="terminalOutput" class="terminal-body">TinyJIT Studio v2.0 initialisé. Prêt pour l'exécution.</div>
     </section>
 
   </main>
 
+  <!-- ==========================================================================
+       CLIENT LOGIC
+       ========================================================================== -->
   <script>
-    // --- State Management ---
-    let examplesData = [];
-    let benchChartInstance = null;
+    let examples = [];
+    let currentMode = 'jit';
+    let benchChart = null;
 
     const editor = document.getElementById('codeEditor');
-    const lineNumbers = document.getElementById('lineNumbers');
-    const cursorPos = document.getElementById('cursorPos');
-    const consoleOutput = document.getElementById('consoleOutput');
+    const gutter = document.getElementById('editorGutter');
+    const coords = document.getElementById('cursorCoords');
+    const terminal = document.getElementById('terminalOutput');
     const exampleSelector = document.getElementById('exampleSelector');
 
-    // Telemetry Elements
-    const telemetryResult = document.getElementById('telemetryResult');
-    const telemetryTime = document.getElementById('telemetryTime');
-    const telemetryJitBadge = document.getElementById('telemetryJitBadge');
+    // Telemetry Chips
+    const chipResult = document.getElementById('chipResult');
+    const chipTime = document.getElementById('chipTime');
+    const chipJit = document.getElementById('chipJit');
 
-    // --- Line Numbers Sync ---
-    function updateLineNumbers() {
-      const lines = editor.value.split('\n').length;
-      let numbersHtml = '';
-      for (let i = 1; i <= lines; i++) {
-        numbersHtml += i + '<br>';
+    // --- Line numbering & Cursor position ---
+    function updateGutter() {
+      const count = editor.value.split('\n').length;
+      let text = '';
+      for (let i = 1; i <= count; i++) {
+        text += i + '\n';
       }
-      lineNumbers.innerHTML = numbersHtml;
+      gutter.textContent = text;
     }
 
-    editor.addEventListener('input', updateLineNumbers);
+    editor.addEventListener('input', updateGutter);
     editor.addEventListener('scroll', () => {
-      lineNumbers.scrollTop = editor.scrollTop;
+      gutter.scrollTop = editor.scrollTop;
     });
 
-    editor.addEventListener('keyup', updateCursorPos);
-    editor.addEventListener('click', updateCursorPos);
-
-    function updateCursorPos() {
-      const selStart = editor.selectionStart;
-      const textBefore = editor.value.substring(0, selStart);
-      const lines = textBefore.split('\n');
+    function updateCoords() {
+      const pos = editor.selectionStart;
+      const lines = editor.value.substring(0, pos).split('\n');
       const line = lines.length;
       const col = lines[lines.length - 1].length + 1;
-      cursorPos.textContent = `Ligne ${line}, Colonne ${col}`;
+      coords.textContent = `Ln ${line}, Col ${col}`;
     }
 
-    // Tab key support in textarea
+    editor.addEventListener('keyup', updateCoords);
+    editor.addEventListener('click', updateCoords);
+
+    // Tab key support & Ctrl+Enter execution
     editor.addEventListener('keydown', (e) => {
       if (e.key === 'Tab') {
         e.preventDefault();
@@ -910,98 +1030,114 @@
         const end = editor.selectionEnd;
         editor.value = editor.value.substring(0, start) + '    ' + editor.value.substring(end);
         editor.selectionStart = editor.selectionEnd = start + 4;
-        updateLineNumbers();
+        updateGutter();
       } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        runScript('jit');
+        executeCode();
       }
     });
 
+    // --- Mode Toggle Switcher ---
+    const modeJitBtn = document.getElementById('modeJitBtn');
+    const modeInterpBtn = document.getElementById('modeInterpBtn');
+
+    modeJitBtn.addEventListener('click', () => {
+      currentMode = 'jit';
+      modeJitBtn.classList.add('active');
+      modeInterpBtn.classList.remove('active');
+      logTerminal("Mode d'exécution basculé sur : JIT Hybride (avec détection de point chaud)", 'info');
+    });
+
+    modeInterpBtn.addEventListener('click', () => {
+      currentMode = 'interp';
+      modeInterpBtn.classList.add('active');
+      modeJitBtn.classList.remove('active');
+      logTerminal("Mode d'exécution basculé sur : 100% Interprété pur (--no-jit)", 'info');
+    });
+
     // --- Tabs Switching ---
-    document.querySelectorAll('.tab-item').forEach(tab => {
+    document.querySelectorAll('.tab-btn').forEach(tab => {
       tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active'));
 
         tab.classList.add('active');
-        const targetId = tab.getAttribute('data-tab');
-        const targetContent = document.getElementById(targetId);
-        if (targetContent) targetContent.classList.add('active');
+        const target = document.getElementById(tab.getAttribute('data-tab'));
+        if (target) target.classList.add('active');
 
-        if (targetId === 'tabBenchmark' && !benchChartInstance) {
-          initBenchmarkChart(1800, 850, 14.5);
+        if (tab.getAttribute('data-tab') === 'tabBench' && !benchChart) {
+          renderBenchChart(5480, 1814, 23.6);
         }
       });
     });
 
-    // --- Console Logger ---
-    function logToConsole(message, type = 'stdout') {
-      const time = new Date().toLocaleTimeString();
-      let colorClass = 'log-stdout';
-      if (type === 'jit') colorClass = 'log-jit';
-      if (type === 'success') colorClass = 'log-success';
-      if (type === 'error') colorClass = 'log-error';
-      if (type === 'info') colorClass = 'log-info';
+    // --- Terminal Output Logger ---
+    function logTerminal(msg, type = 'stdout') {
+      const time = new Date().toLocaleTimeString('fr-FR', { hour12: false });
+      const el = document.createElement('span');
+      el.className = 'terminal-line';
 
-      const line = document.createElement('div');
-      line.className = colorClass;
-      line.textContent = `[${time}] ${message}`;
-      consoleOutput.appendChild(line);
-      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+      if (type === 'jit') el.className += ' term-jit';
+      else if (type === 'ok') el.className += ' term-ok';
+      else if (type === 'err') el.className += ' term-err';
+      else if (type === 'info') el.className += ' term-info';
+      else el.className += ' term-stdout';
+
+      el.textContent = `[${time}] ${msg}`;
+      terminal.appendChild(el);
+      terminal.scrollTop = terminal.scrollHeight;
     }
 
-    document.getElementById('btnClearConsole').addEventListener('click', () => {
-      consoleOutput.innerHTML = '';
+    document.getElementById('btnClearTerm').addEventListener('click', () => {
+      terminal.innerHTML = '';
     });
 
     // --- Load Examples ---
     async function loadExamples() {
       try {
         const res = await fetch('/api/examples');
-        examplesData = await res.json();
-        exampleSelector.innerHTML = '<option value="" disabled selected>-- Choisir un script d\'exemple --</option>';
-        examplesData.forEach(ex => {
+        examples = await res.json();
+        exampleSelector.innerHTML = '<option value="" disabled selected>Sélectionner un exemple...</option>';
+        examples.forEach(ex => {
           const opt = document.createElement('option');
           opt.value = ex.id;
-          opt.textContent = `${ex.title} (${ex.filename})`;
+          opt.textContent = `${ex.filename} — ${ex.title}`;
           exampleSelector.appendChild(opt);
         });
 
-        // Set default to fibonacci if present
-        const fib = examplesData.find(e => e.id === 'fibonacci') || examplesData[0];
+        const fib = examples.find(e => e.id === 'fibonacci') || examples[0];
         if (fib) {
           editor.value = fib.code;
           exampleSelector.value = fib.id;
-          updateLineNumbers();
+          updateGutter();
         }
       } catch (err) {
-        logToConsole(`Erreur chargement exemples: ${err.message}`, 'error');
+        logTerminal(`Erreur chargement des exemples: ${err.message}`, 'err');
       }
     }
 
     exampleSelector.addEventListener('change', (e) => {
-      const selected = examplesData.find(ex => ex.id === e.target.value);
+      const selected = examples.find(ex => ex.id === e.target.value);
       if (selected) {
         editor.value = selected.code;
-        updateLineNumbers();
-        logToConsole(`Exemple '${selected.title}' chargé: ${selected.description}`, 'info');
+        updateGutter();
+        logTerminal(`Programme '${selected.filename}' chargé: ${selected.description}`, 'info');
       }
     });
 
-    // --- Run Script ---
-    async function runScript(mode = 'jit') {
+    // --- Run Execution ---
+    async function executeCode() {
       const code = editor.value.trim();
       if (!code) {
-        logToConsole("Erreur: Le code source est vide.", 'error');
+        logTerminal("Le code source est vide.", 'err');
         return;
       }
 
-      const runBtn = document.getElementById('btnRunJit');
-      const originalText = runBtn.innerHTML;
-      runBtn.innerHTML = '<span class="loading-spinner"></span> Exécution...';
+      const runBtn = document.getElementById('btnRun');
       runBtn.disabled = true;
+      runBtn.style.opacity = '0.7';
 
-      logToConsole(`Démarrage de l'exécution (Mode: ${mode.toUpperCase()})...`, 'info');
+      logTerminal(`Lancement de l'exécution (Mode: ${currentMode.toUpperCase()})...`, 'info');
 
       try {
         const res = await fetch('/api/run', {
@@ -1009,7 +1145,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: code,
-            mode: mode,
+            mode: currentMode,
             dump_asm: true,
             disasm: true
           })
@@ -1018,110 +1154,95 @@
         const data = await res.json();
 
         if (!data.success) {
-          logToConsole(`Échec de compilation / exécution:\n${data.stderr || data.stdout}`, 'error');
-          telemetryResult.textContent = "Erreur";
-          telemetryTime.textContent = "--";
+          logTerminal(`Échec de la compilation:\n${data.stderr || data.stdout}`, 'err');
+          chipResult.textContent = "Erreur";
+          chipTime.textContent = "--";
           return;
         }
 
-        // Update Telemetry
-        telemetryResult.textContent = data.result !== null ? data.result : 'N/A';
-        telemetryTime.textContent = `${data.vm_time_ms.toFixed(3)} ms`;
+        chipResult.textContent = data.result !== null ? data.result : 'N/A';
+        chipTime.textContent = `${data.vm_time_ms.toFixed(3)} ms`;
 
         if (data.jit_triggered) {
-          telemetryJitBadge.className = 'telemetry-badge badge-jit-active';
-          telemetryJitBadge.innerHTML = `🚀 JIT Actif (${data.jit_functions.join(', ')})`;
-          logToConsole(`Point chaud atteint ! Compilation native réussie pour : ${data.jit_functions.join(', ')}`, 'jit');
+          chipJit.className = 'telemetry-chip chip-jit-active';
+          chipJit.innerHTML = `Compilé JIT (${data.jit_functions.join(', ')})`;
+          logTerminal(`Point chaud atteint : compilation native réussie pour [${data.jit_functions.join(', ')}]`, 'jit');
         } else {
-          telemetryJitBadge.className = 'telemetry-badge';
-          telemetryJitBadge.innerHTML = `🐢 Interprété pur (sous seuil 1000)`;
+          chipJit.className = 'telemetry-chip';
+          chipJit.innerHTML = `Interprété pur`;
         }
 
-        logToConsole(`>> Résultat: ${data.result} (Temps: ${data.vm_time_ms.toFixed(3)} ms)`, 'success');
+        logTerminal(`Résultat : ${data.result} (en ${data.vm_time_ms.toFixed(3)} ms)`, 'ok');
 
-        // Render Bytecode Table
+        // Render Tabs Content
         renderBytecode(data.bytecode);
+        renderAssembly(data.assembly);
 
-        // Render Assembly
-        if (data.assembly) {
-          renderAssembly(data.assembly);
-        } else {
-          document.getElementById('asmViewer').textContent = data.jit_triggered 
-            ? "Assembleur généré mais non extrait." 
-            : "Aucun code x86-64 généré : seuil de point chaud (1000 appels) non atteint.";
-        }
-
-        // Render C Dumps
         if (data.c_dumps && Object.keys(data.c_dumps).length > 0) {
-          let dumpText = "";
-          for (const [fn, code] of Object.entries(data.c_dumps)) {
-            dumpText += `/* ==================== Function ${fn} ==================== */\n` + code + "\n\n";
+          let cText = "";
+          for (const [fn, cCode] of Object.entries(data.c_dumps)) {
+            cText += `/* ==================== Function ${fn} ==================== */\n` + cCode + "\n\n";
           }
-          document.getElementById('cDumpViewer').textContent = dumpText;
-        } else {
-          document.getElementById('cDumpViewer').textContent = "Aucun dump C intermédiaire généré.";
+          document.getElementById('cDumpViewer').textContent = cText;
         }
 
-        // Fetch and Render CFG
-        fetchAndRenderCFG(code, mode);
+        // Render CFG
+        fetchAndRenderCFG(code, currentMode);
 
       } catch (err) {
-        logToConsole(`Erreur réseau ou interne: ${err.message}`, 'error');
+        logTerminal(`Erreur de communication : ${err.message}`, 'err');
       } finally {
-        runBtn.innerHTML = originalText;
         runBtn.disabled = false;
+        runBtn.style.opacity = '1';
       }
     }
 
-    document.getElementById('btnRunJit').addEventListener('click', () => runScript('jit'));
-    document.getElementById('btnRunInterp').addEventListener('click', () => runScript('interp'));
+    document.getElementById('btnRun').addEventListener('click', executeCode);
 
-    // --- Render Bytecode ---
+    // --- Render Bytecode Table ---
     function renderBytecode(functions) {
       const container = document.getElementById('bytecodeContainer');
       if (!functions || functions.length === 0) {
-        container.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 40px 0;">Aucune instruction de bytecode.</div>';
+        container.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 48px 0; font-family:var(--font-mono); font-size:12px;">Aucun bytecode généré.</div>';
         return;
       }
 
       let html = '';
       functions.forEach(fn => {
         html += `
-          <div class="bytecode-fn-block">
-            <div class="bytecode-fn-header">
-              <span>Fonction: <strong style="color:var(--accent-cyan);">${fn.name}</strong></span>
-              <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-code);">
-                Args: ${fn.args} | Locales: ${fn.locals} | Constantes: ${fn.constants.length}
-              </span>
+          <div class="fn-table-card">
+            <div class="fn-table-header">
+              <span>Fonction : <strong>${fn.name}</strong></span>
+              <span>Args: ${fn.args} | Locales: ${fn.locals} | Constantes: ${fn.constants.length}</span>
             </div>
-            <table class="bytecode-table">
+            <table class="table-isa">
               <thead>
                 <tr>
-                  <th style="width:60px;">Offset</th>
-                  <th style="width:140px;">Opcode</th>
+                  <th style="width:70px;">Offset</th>
+                  <th style="width:150px;">Instruction</th>
                   <th style="width:80px;">Arg</th>
-                  <th>Description Opérationnelle</th>
+                  <th>Sémantique Machine</th>
                 </tr>
               </thead>
               <tbody>
         `;
 
         fn.instructions.forEach(ins => {
-          let badgeClass = 'op-stack';
+          let tagClass = 'op-tag-stack';
           let desc = '';
 
           switch (ins.op) {
             case 'CONST':
-              badgeClass = 'op-stack';
-              desc = `Empile la constante #${ins.arg}`;
+              tagClass = 'op-tag-stack';
+              desc = `Charge la constante indexée #${ins.arg}`;
               break;
             case 'LOAD':
-              badgeClass = 'op-stack';
-              desc = `Charge la variable locale #${ins.arg} sur la pile`;
+              tagClass = 'op-tag-stack';
+              desc = `Empile la variable locale #${ins.arg}`;
               break;
             case 'STORE':
-              badgeClass = 'op-stack';
-              desc = `Dépile et stocke dans la locale #${ins.arg}`;
+              tagClass = 'op-tag-stack';
+              desc = `Stocke le sommet de pile dans la variable locale #${ins.arg}`;
               break;
             case 'ADD':
             case 'SUB':
@@ -1131,36 +1252,36 @@
             case 'EQ':
             case 'LT':
             case 'GT':
-              badgeClass = 'op-arith';
-              desc = `Opération arithmétique/logique binaire ${ins.op}`;
+              tagClass = 'op-tag-arith';
+              desc = `Opération arithmétique binaire entière (${ins.op})`;
               break;
             case 'JUMP':
-              badgeClass = 'op-branch';
-              desc = `Saut inconditionnel vers l'offset ${ins.arg}`;
+              tagClass = 'op-tag-branch';
+              desc = `Branchement inconditionnel -> offset ${ins.arg}`;
               break;
             case 'JUMP_IF_FALSE':
-              badgeClass = 'op-branch';
-              desc = `Saut vers l'offset ${ins.arg} si sommet de pile == 0`;
+              tagClass = 'op-tag-branch';
+              desc = `Branchement conditionnel si faux -> offset ${ins.arg}`;
               break;
             case 'CALL':
-              badgeClass = 'op-call';
-              desc = `Appel de fonction [${ins.arg}] (profilage point chaud)`;
+              tagClass = 'op-tag-call';
+              desc = `Invocation de fonction (profilage du point chaud)`;
               break;
             case 'RET':
-              badgeClass = 'op-ret';
-              desc = `Retourne la valeur du sommet de pile`;
+              tagClass = 'op-tag-ret';
+              desc = `Dépile et renvoie la valeur de retour`;
               break;
             default:
-              badgeClass = 'op-stack';
+              tagClass = 'op-tag-stack';
               desc = ins.op;
           }
 
           html += `
             <tr>
-              <td style="color:var(--text-muted);">${ins.offset}</td>
-              <td><span class="op-badge ${badgeClass}">${ins.op}</span></td>
-              <td style="color:var(--accent-amber); font-weight:600;">${ins.arg}</td>
-              <td style="color:var(--text-secondary);">${desc}</td>
+              <td style="color:var(--text-faint);">${ins.offset}</td>
+              <td><span class="op-tag ${tagClass}">${ins.op}</span></td>
+              <td style="color:var(--accent-amber);">${ins.arg}</td>
+              <td>${desc}</td>
             </tr>
           `;
         });
@@ -1175,34 +1296,38 @@
       container.innerHTML = html;
     }
 
-    // --- Render Assembly with syntax highlight ---
-    function renderAssembly(rawAsm) {
+    // --- Render Assembly with Godbolt-style tokens ---
+    function renderAssembly(raw) {
       const viewer = document.getElementById('asmViewer');
-      const lines = rawAsm.split('\n');
-      let formatted = '';
+      if (!raw || raw.trim().length === 0) {
+        viewer.textContent = "Aucun code x86-64 généré (le point chaud n'a pas été franchi ou mode interprété).";
+        return;
+      }
+
+      const lines = raw.split('\n');
+      let out = '';
 
       lines.forEach(line => {
-        let trimmed = line.trim();
+        const trimmed = line.trim();
         if (!trimmed) {
-          formatted += '\n';
+          out += '\n';
           return;
         }
 
         if (trimmed.endsWith(':')) {
-          formatted += `<span class="asm-label">${escapeHtml(line)}</span>\n`;
+          out += `<span class="asm-tok-label">${escapeHtml(line)}</span>\n`;
         } else if (trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith(';')) {
-          formatted += `<span class="asm-comment">${escapeHtml(line)}</span>\n`;
+          out += `<span class="asm-tok-comment">${escapeHtml(line)}</span>\n`;
         } else {
-          // Highlight registers and instructions
-          let hl = escapeHtml(line);
-          hl = hl.replace(/(%[re]?[a-d]x|%[re]?[sb]p|%[re]?[sd]i|%r\d+[d-w-b]?)/g, '<span class="asm-register">$1</span>');
-          hl = hl.replace(/\$(-?\d+)/g, '<span class="asm-immediate">$$1</span>');
-          hl = hl.replace(/^\s*([a-z]+[a-z0-9]*)/, '<span class="asm-instruction">$1</span>');
-          formatted += hl + '\n';
+          let s = escapeHtml(line);
+          s = s.replace(/(%[re]?[a-d]x|%[re]?[sb]p|%[re]?[sd]i|%r\d+[d-w-b]?)/g, '<span class="asm-tok-reg">$1</span>');
+          s = s.replace(/\$(-?\d+)/g, '<span class="asm-tok-imm">$$1</span>');
+          s = s.replace(/^\s*([a-z]+[a-z0-9]*)/, '<span class="asm-tok-mnemonic">$1</span>');
+          out += s + '\n';
         }
       });
 
-      viewer.innerHTML = formatted;
+      viewer.innerHTML = out;
     }
 
     function escapeHtml(str) {
@@ -1212,10 +1337,10 @@
     document.getElementById('btnCopyAsm').addEventListener('click', () => {
       const text = document.getElementById('asmViewer').textContent;
       navigator.clipboard.writeText(text);
-      logToConsole("Code assembleur copié dans le presse-papier.", 'info');
+      logTerminal("Code assembleur x86-64 copié dans le presse-papier.", 'info');
     });
 
-    // --- Fetch and Render CFG ---
+    // --- Fetch & Render Control Flow Graph ---
     async function fetchAndRenderCFG(code, mode) {
       const container = document.getElementById('cfgContainer');
       try {
@@ -1227,47 +1352,37 @@
         const data = await res.json();
 
         if (!data.nodes || data.nodes.length === 0) {
-          container.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 40px 0;">Impossible de générer le graphe de contrôle.</div>';
+          container.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 48px 0; font-family:var(--font-mono); font-size:12px;">Impossible d\'analyser les blocs de base.</div>';
           return;
         }
 
-        let html = `<div style="font-weight:700; color:var(--text-primary); margin-bottom:10px;">Graphe de Flot de Contrôle (CFG) — Fonction: <span style="color:var(--accent-cyan); font-family:var(--font-code);">${data.function_name}</span></div>`;
-
-        data.nodes.forEach((node, index) => {
+        let html = '';
+        data.nodes.forEach((node, idx) => {
           html += `
-            <div class="cfg-node">
-              <div class="cfg-node-header">
-                <span>Bloc: ${node.id}</span>
-                <span>[${node.start}..${node.end}]</span>
+            <div class="cfg-card">
+              <div class="cfg-card-title">
+                <span>Bloc : ${node.id}</span>
+                <span style="color:var(--text-muted);">[${node.start}..${node.end}]</span>
               </div>
-              <div class="cfg-node-body">${node.instructions.join('\n')}</div>
+              <div class="cfg-card-content">${node.instructions.join('\n')}</div>
             </div>
           `;
 
-          if (index < data.nodes.length - 1) {
-            html += `<div class="cfg-connector"></div>`;
+          if (idx < data.nodes.length - 1) {
+            html += `<div class="cfg-arrow"></div>`;
           }
         });
 
         container.innerHTML = html;
-
       } catch (err) {
-        container.innerHTML = `<div style="color:var(--accent-rose); text-align:center; padding: 40px 0;">Erreur CFG: ${err.message}</div>`;
+        container.innerHTML = `<div style="color:var(--accent-rose); text-align:center; padding: 48px 0; font-family:var(--font-mono); font-size:12px;">Erreur CFG: ${err.message}</div>`;
       }
     }
 
-    // --- Benchmark Runner & Chart ---
-    document.getElementById('btnBench').addEventListener('click', runBenchmarkSuite);
-
-    async function runBenchmarkSuite() {
-      const benchBtn = document.getElementById('btnBench');
-      const originalText = benchBtn.innerHTML;
-      benchBtn.innerHTML = '<span class="loading-spinner"></span> Benchmark...';
-      benchBtn.disabled = true;
-
-      // Switch to tab
-      document.querySelector('[data-tab="tabBenchmark"]').click();
-      logToConsole("Lancement de la suite de benchmark C intégrée...", 'info');
+    // --- Benchmark Runner & Chart.js Visualizer ---
+    document.getElementById('btnBench').addEventListener('click', async () => {
+      document.querySelector('[data-tab="tabBench"]').click();
+      logTerminal("Lancement du benchmark officiel (50 millions d'itérations)...", 'info');
 
       try {
         const res = await fetch('/api/benchmark');
@@ -1278,42 +1393,37 @@
         document.getElementById('metricNative').textContent = `${data.native_ms.toFixed(1)} ms`;
         document.getElementById('metricSpeedup').textContent = `Accélération : ${data.speedup.toFixed(1)}x`;
 
-        initBenchmarkChart(data.interp_ms, data.jit_ms, data.native_ms);
-        logToConsole(`Benchmark terminé : Interpréteur ${data.interp_ms.toFixed(1)}ms | JIT ${data.jit_ms.toFixed(1)}ms | Natif ${data.native_ms.toFixed(1)}ms (Speedup: ${data.speedup.toFixed(1)}x)`, 'success');
+        renderBenchChart(data.interp_ms, data.jit_ms, data.native_ms);
+        logTerminal(`Benchmark terminé : Interpréteur ${data.interp_ms.toFixed(1)}ms | JIT ${data.jit_ms.toFixed(1)}ms | Natif ${data.native_ms.toFixed(1)}ms (${data.speedup.toFixed(1)}x plus rapide)`, 'ok');
 
       } catch (err) {
-        logToConsole(`Erreur benchmark: ${err.message}`, 'error');
-      } finally {
-        benchBtn.innerHTML = originalText;
-        benchBtn.disabled = false;
+        logTerminal(`Erreur lors du benchmark : ${err.message}`, 'err');
       }
-    }
+    });
 
-    function initBenchmarkChart(interpMs, jitMs, nativeMs) {
+    function renderBenchChart(interpMs, jitMs, nativeMs) {
       const ctx = document.getElementById('benchChart').getContext('2d');
-      if (benchChartInstance) {
-        benchChartInstance.destroy();
-      }
+      if (benchChart) benchChart.destroy();
 
-      benchChartInstance = new Chart(ctx, {
+      benchChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: ['Interpréteur Bytecode', 'TinyJIT (Hybride JIT)', 'Code C Natif (-O2)'],
+          labels: ['Interpréteur seul', 'TinyJIT (Hybride)', 'Code Natif Pur (-O2)'],
           datasets: [{
-            label: 'Temps d\'exécution (ms, plus petit = meilleur)',
+            label: "Temps d'exécution (ms, plus bas = meilleur)",
             data: [interpMs, jitMs, nativeMs],
             backgroundColor: [
-              'rgba(148, 163, 184, 0.4)',
-              'rgba(6, 182, 212, 0.8)',
-              'rgba(16, 185, 129, 0.8)'
+              'rgba(113, 113, 122, 0.45)',
+              'rgba(59, 130, 246, 0.75)',
+              'rgba(16, 185, 129, 0.85)'
             ],
             borderColor: [
-              '#94a3b8',
-              '#06b6d4',
+              '#71717a',
+              '#3b82f6',
               '#10b981'
             ],
-            borderWidth: 1.5,
-            borderRadius: 6
+            borderWidth: 1,
+            borderRadius: 4
           }]
         },
         options: {
@@ -1321,33 +1431,33 @@
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } }
+              labels: { color: '#a1a1aa', font: { family: 'Inter', size: 11 } }
             },
             tooltip: {
               callbacks: {
-                label: (context) => ` ${context.raw} ms`
+                label: (ctx) => ` ${ctx.raw} ms`
               }
             }
           },
           scales: {
             y: {
               beginAtZero: true,
-              grid: { color: '#1e293b' },
-              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }
+              grid: { color: '#1e1e24' },
+              ticks: { color: '#71717a', font: { family: 'JetBrains Mono', size: 10 } }
             },
             x: {
               grid: { display: false },
-              ticks: { color: '#cbd5e1', font: { family: 'Inter', size: 12, weight: '500' } }
+              ticks: { color: '#a1a1aa', font: { family: 'Inter', size: 11 } }
             }
           }
         }
       });
     }
 
-    // --- Init on DOM Load ---
+    // Init
     window.addEventListener('DOMContentLoaded', () => {
       loadExamples();
-      updateLineNumbers();
+      updateGutter();
     });
   </script>
 </body>
