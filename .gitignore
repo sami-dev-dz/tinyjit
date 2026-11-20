@@ -14,6 +14,9 @@ _studio_temp.tiny
 __pycache__/
 *.pyc
 
+# Documents générés
+*.pdf
+
 # Fichiers temporaires des éditeurs
 .vscode/
 .idea/
